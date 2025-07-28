@@ -31,19 +31,18 @@ BATCH_FLAG = config['PATHS']['BATCH_FLAG']
 DISABLE_TQDM = config['PATHS']['DISABLE_TQDM']
 ENABLE_MULTIPROC_SLURM = config['PATHS']['ENABLE_MULTIPROC_SLURM']
 
-if not ENABLE_MULTIPROC_SLURM:
-    if USE_MODEL_X:
-        try:
-            DEVICE = 'cpu'
-            MODEL_X_TRANSLATION = torch.load(MODEL_X_TRANSLATION_PATH, map_location=DEVICE, weights_only=False)
-            MODEL_X_TRANSLATION.eval()
-            print("Model X loaded successfully.")
-        except Exception as e:
-            print(f"Error loading Model X: {e}")
-            print("Proceeding without Model X translation.")
-            MODEL_X_TRANSLATION = None
-    else:
+if USE_MODEL_X:
+    try:
+        DEVICE = 'cpu'
+        MODEL_X_TRANSLATION = torch.load(MODEL_X_TRANSLATION_PATH, map_location=DEVICE, weights_only=False)
+        MODEL_X_TRANSLATION.eval()
+        print("Model X loaded successfully.")
+    except Exception as e:
+        print(f"Error loading Model X: {e}")
+        print("Proceeding without Model X translation.")
         MODEL_X_TRANSLATION = None
+else:
+    MODEL_X_TRANSLATION = None
 
 def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
     global MODEL_FEATURE_DETECT
@@ -173,24 +172,24 @@ def init_worker():
     global MODEL_FEATURE_DETECT
     global MODEL_X_TRANSLATION
     
-    with open('datapaths.yaml', 'r') as f:
-        config = yaml.safe_load(f)
+    # with open('datapaths.yaml', 'r') as f:
+    #     config = yaml.safe_load(f)
     
-    MODEL_FEATURE_DETECT = YOLO(config['PATHS']['MODEL_FEATURE_DETECT_PATH'])
+    # MODEL_FEATURE_DETECT = YOLO(config['PATHS']['MODEL_FEATURE_DETECT_PATH'])
     
-    if config['PATHS']['USE_MODEL_X']:
-        try:
-            DEVICE = 'cpu'
-            MODEL_X_TRANSLATION = torch.load(config['PATHS']['MODEL_X_TRANSLATION_PATH'], 
-                                           map_location=DEVICE, weights_only=False)
-            MODEL_X_TRANSLATION.eval()
-            print("Model X loaded successfully on worker")
-        except Exception as e:
-            print(f"Error loading Model X on worker: {e}")
-            print("Proceeding without Model X translation on worker")
-            MODEL_X_TRANSLATION = None
-    else:
-        MODEL_X_TRANSLATION = None
+    # if config['PATHS']['USE_MODEL_X']:
+    #     try:
+    #         DEVICE = 'cpu'
+    #         MODEL_X_TRANSLATION = torch.load(config['PATHS']['MODEL_X_TRANSLATION_PATH'], 
+    #                                        map_location=DEVICE, weights_only=False)
+    #         MODEL_X_TRANSLATION.eval()
+    #         print("Model X loaded successfully on worker")
+    #     except Exception as e:
+    #         print(f"Error loading Model X on worker: {e}")
+    #         print("Proceeding without Model X translation on worker")
+    #         MODEL_X_TRANSLATION = None
+    # else:
+    #     MODEL_X_TRANSLATION = None
 
 if __name__ == "__main__":
     data_dirname = DATA_LOAD_DIR
@@ -208,7 +207,7 @@ if __name__ == "__main__":
         scans = natsorted(scans)
         data_type = 'h5'
 
-    pbar = tqdm(scans, desc='Processing Scans',total = len(scans), ascii="░▖▘▝▗▚▞█")
+    pbar = tqdm(scans, desc='Processing Scans',total = len(scans), ascii="░▖▘▝▗▚▞█", disable=DISABLE_TQDM)
     if not ENABLE_MULTIPROC_SLURM:
         disable_tqdm = DISABLE_TQDM
         save_detections = False
@@ -233,12 +232,12 @@ if __name__ == "__main__":
             account='r00970',
             cores=1, 
             processes=1,
-            memory='15GB',
+            memory='10GB',
             walltime='01:00:00',
             job_extra_directives=[
                 "--cpus-per-task=1",
                 "--nodes=1",
-                "--job-name=my_job",
+                "--job-name=oct_reg",
                 "--output=my_job.out",
                 "--error=my_job.err"
             ],
@@ -247,12 +246,13 @@ if __name__ == "__main__":
         cluster.scale(jobs=len(scans))
         # Attach client
         client = Client(cluster)
-        print(client)
         client.run(init_worker)
         tasks = [delayed(main)(*args) for args in multiproc_args_list]
-        print(client.dashboard_link)
         print("Submitting tasks to the cluster...")
         results = compute(*tasks)
-        results = client.gather(results)
-        client.close()
-        cluster.close()
+        # results = client.gather(results)
+        try:
+            client.close()
+            cluster.close()
+        except:
+            pass
