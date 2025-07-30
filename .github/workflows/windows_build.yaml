@@ -32,9 +32,9 @@ jobs:
     - name: Zip Windows executable
       run: |
         cd dist
-        zip -r OCT_windows_app.zip OCT_windows_app.exe
-        ls -l
-      shell: pwsh
+        tar -czvf OCT_windows_app.tar.gz -C dist OCT_windows_app.exe
+        ls -l OCT_windows_app.tar.gz
+      shell: shell
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4 # Action to upload the built executable as an artifact
