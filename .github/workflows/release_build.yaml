@@ -66,7 +66,6 @@ jobs:
 
     - name: Zip Windows executable
       run: |
-        cd dist
         tar -czvf OCT_windows_app.tar.gz -C dist OCT_windows_app.exe
         ls -l OCT_windows_app.tar.gz
       shell: pwsh
