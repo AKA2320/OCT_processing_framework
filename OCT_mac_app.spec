@@ -13,11 +13,11 @@ site_path = [i for i in sys.path if "site-packages" in i][0]
 napari_path = os.path.join(site_path, "napari")
 vispy_path = os.path.join(site_path, "vispy")
 
-config_py_path = '/Users/akapatil/Documents/OCT_registration_framework/config_transmorph.py'
-funcs_transmorph_py_path = '/Users/akapatil/Documents/OCT_registration_framework/funcs_transmorph.py'
-datapaths_yaml_path = '/Users/akapatil/Documents/OCT_registration_framework/datapaths.yaml'
-models_path = '/Users/akapatil/Documents/OCT_registration_framework/models'
-pyside_gui_py_path = '/Users/akapatil/Documents/OCT_registration_framework/pyside_gui.py'
+config_py_path = 'config_transmorph.py'
+funcs_transmorph_py_path = 'funcs_transmorph.py'
+datapaths_yaml_path = 'datapaths.yaml'
+models_path = 'models'
+pyside_gui_py_path = 'pyside_gui.py'
 
 a = Analysis(
     [pyside_gui_py_path],
