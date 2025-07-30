@@ -18,13 +18,24 @@ try:
     with open('datapaths.yaml', 'r') as f:
         config = yaml.safe_load(f)
 except:
-    with open(f'{os.path.join(os.path.dirname(sys.executable), '_internal')}/datapaths.yaml', 'r') as f:
-        config = yaml.safe_load(f)
+    try:
+        with open(os.path.join(os.path.dirname(sys.executable), '_internal','datapaths.yaml'), 'r') as f:
+            config = yaml.safe_load(f)
+    except:
+        with open(os.path.join(os.path.dirname(sys.executable), '..','Resources','datapaths.yaml'), 'r') as f:
+            config = yaml.safe_load(f)
         
+try:
+    MODEL_FEATURE_DETECT = YOLO(config['PATHS']['MODEL_FEATURE_DETECT_PATH'])
+    MODEL_X_TRANSLATION_PATH = config['PATHS']['MODEL_X_TRANSLATION_PATH']
+except:
+    try:
+        MODEL_FEATURE_DETECT = YOLO(os.path.join(os.path.dirname(sys.executable), '_internal',config['PATHS']['MODEL_FEATURE_DETECT_PATH']))
+        MODEL_X_TRANSLATION_PATH = os.path.join(os.path.dirname(sys.executable), '_internal',config['PATHS']['MODEL_X_TRANSLATION_PATH'])
+    except:
+        MODEL_FEATURE_DETECT = YOLO(os.path.join(os.path.dirname(sys.executable), '..','Resources',config['PATHS']['MODEL_FEATURE_DETECT_PATH']))
+        MODEL_X_TRANSLATION_PATH = os.path.join(os.path.dirname(sys.executable), '..','Resources',config['PATHS']['MODEL_X_TRANSLATION_PATH'])
 
-MODEL_FEATURE_DETECT = YOLO(config['PATHS']['MODEL_FEATURE_DETECT_PATH'])
-# USE_MODEL_X = config['PATHS']['USE_MODEL_X'] # This will now come from command line
-MODEL_X_TRANSLATION_PATH = config['PATHS']['MODEL_X_TRANSLATION_PATH']
 SURFACE_Y_PAD = 20
 SURFACE_X_PAD = 10
 CELLS_X_PAD = 5
