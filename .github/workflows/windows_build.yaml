@@ -27,8 +27,7 @@ jobs:
         # pip install napari PySide6 torch ultralytics h5py natsort torchvision tqdm timm ml_collections pydicom skimage scipy bokeh
 
     - name: Build with PyInstaller
-      # IMPORTANT: Ensure 'your_app_windows.spec' matches the name of your Windows spec file
-      run: pyinstaller your_app_windows.spec
+      run: pyinstaller OCT_windows_app.spec
 
     - name: Zip Windows executable
       run: |
@@ -37,7 +36,7 @@ jobs:
         # The name 'OCT_windows_app.exe' should match the 'name' in your Windows spec file's EXE object.
         zip -r OCT_windows_app.zip OCT_windows_app.exe
         ls -l # List files to verify the zip
-      shell: pwsh # Use PowerShell for zip command on Windows runner
+      shell: pwsh
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4 # Action to upload the built executable as an artifact
