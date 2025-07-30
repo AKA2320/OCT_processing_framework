@@ -1,11 +1,11 @@
 PATHS:
-  DATA_LOAD_DIR: '/Users/akapatil/Documents/OCT/Bifocal registration/Hadiya_4_15_2025_1.50_3mm/batch'
+  DATA_LOAD_DIR: '/Users/akapatil/Documents/OCT/Bifocal registration/Hadiya_6_17_2025_1.50D_3mm/batch4'
   DATA_SAVE_DIR: 'output/'
   MODEL_FEATURE_DETECT_PATH: 'models/feature_detect_yolov12best.pt'
   MODEL_X_TRANSLATION_PATH: 'models/model_transmorph_LRNPOSEMBD_Large_onlyX_batch32_ncc_normalized_shiftrange3_dynamiccrop_onlyMSE.pt'
   USE_MODEL_X: True
-  EXPECTED_SURFACES: 3
-  EXPECTED_CELLS: 3
+  EXPECTED_SURFACES: 2
+  EXPECTED_CELLS: 2
   BATCH_FLAG: True
-  DISABLE_TQDM: True
-  ENABLE_MULTIPROC_SLURM: True
+  DISABLE_TQDM: False
+  ENABLE_MULTIPROC_SLURM: False
