@@ -1,0 +1,56 @@
+# .github/workflows/windows_build.yml
+name: Build Windows Executable
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Trigger on pushes to tags like v1.0.0
+
+jobs:
+  build:
+    runs-on: windows-latest # Use the latest Windows runner
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4 # Action to checkout your repository code
+
+    - name: Set up Python
+      uses: actions/setup-python@v5 # Action to set up Python
+      with:
+        python-version: '3.12.10' # Specify the Python version
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller # Install PyInstaller
+        # Add any other project-specific dependencies here, e.g.:
+        # pip install napari PySide6 torch ultralytics h5py natsort torchvision tqdm timm ml_collections pydicom skimage scipy bokeh
+
+    - name: Build with PyInstaller
+      # IMPORTANT: Ensure 'your_app_windows.spec' matches the name of your Windows spec file
+      run: pyinstaller your_app_windows.spec
+
+    - name: Zip Windows executable
+      run: |
+        cd dist
+        # Create a zip file of the executable.
+        # The name 'OCT_windows_app.exe' should match the 'name' in your Windows spec file's EXE object.
+        zip -r OCT_windows_app.zip OCT_windows_app.exe
+        ls -l # List files to verify the zip
+      shell: pwsh # Use PowerShell for zip command on Windows runner
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4 # Action to upload the built executable as an artifact
+      with:
+        name: OCT_windows_app # Name of the artifact
+        path: dist/OCT_windows_app.zip # Path to the zipped executable
+
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/') # Only run if triggered by a tag push
+      uses: softprops/action-gh-release@v2 # Action to create a GitHub Release
+      with:
+        files: dist/OCT_windows_app.zip # Path to the file to upload to the release
+        name: Release ${{ github.ref_name }} - Windows # Name of the release (e.g., Release v1.0.0 - Windows)
+        tag_name: ${{ github.ref_name }} # Tag name (e.g., v1.0.0)
+        draft: false # Set to true to create a draft release
+        prerelease: false # Set to true for a pre-release
