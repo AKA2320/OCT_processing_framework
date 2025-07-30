@@ -22,9 +22,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller # Install PyInstaller
-        # Add any other project-specific dependencies here, e.g.:
-        # pip install napari PySide6 torch ultralytics h5py natsort torchvision tqdm timm ml_collections pydicom skimage scipy bokeh
+        pip install pyinstaller
+        pip install napari PySide6 torch ultralytics h5py natsort torchvision tqdm timm ml_collections pydicom skimage scipy bokeh
 
     - name: Build with PyInstaller
       run: pyinstaller OCT_mac_app.spec
@@ -32,11 +31,9 @@ jobs:
     - name: Zip macos executable
       run: |
         cd dist
-        # Create a zip file of the executable.
-        # The name 'OCT_mac_app.app' should match the 'name' in your macos spec file's EXE object.
         zip -r OCT_mac_app.zip OCT_mac_app.app
-        ls -l # List files to verify the zip
-      shell: pwsh # Use PowerShell for zip command on macos runner
+        ls -l
+      shell: pwsh
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4 # Action to upload the built executable as an artifact
