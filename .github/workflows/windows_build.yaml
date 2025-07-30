@@ -9,7 +9,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest # Use the latest Windows runner
-
+    permissions:
+      contents: write
     steps:
     - name: Checkout code
       uses: actions/checkout@v4 # Action to checkout your repository code
