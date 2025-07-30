@@ -23,7 +23,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
-        pip install napari PySide6 torch ultralytics h5py natsort torchvision tqdm timm ml_collections pydicom skimage scipy bokeh
+        pip install napari pyside6 torch ultralytics h5py natsort torchvision tqdm timm ml_collections pydicom scikit-image scipy bokeh matplotlib
 
     - name: Build with PyInstaller
       run: pyinstaller OCT_mac_app.spec
