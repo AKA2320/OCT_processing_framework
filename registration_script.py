@@ -56,7 +56,7 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
             raise FileNotFoundError(f"Directory {dirname} not found")
         original_data = load_data_dcm(dirname,scan_num)
     # MODEL_FEATURE_DETECT PART
-    print(original_data.shape)
+    # print(original_data.shape)
 
     pbar.set_description(desc = f'Loading Model_FEATURE_DETECT for {scan_num}')
     static_flat = np.argmax(np.sum(original_data[:,:,:],axis=(0,1)))
@@ -71,6 +71,8 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
         return None
     cropped_original_data = crop_data(original_data,surface_crop_coords,cells_crop_coords,original_data.shape[1])
     del original_data
+
+    # print('SURFACE CROP COORDS:',surface_crop_coords)
 
     static_flat = np.argmax(np.sum(cropped_original_data[:,:,:],axis=(0,1)))
     test_detect_img = preprocess_img(cropped_original_data[:,:,static_flat])
@@ -87,7 +89,6 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
 
     # FLATTENING PART
     pbar.set_description(desc = f'Flattening {scan_num}.....')
-    # print('SURFACE COORDS:',surface_coords)
     static_flat = np.argmax(np.sum(cropped_original_data[:,surface_coords[0,0]:surface_coords[0,1],:],axis=(0,1)))
     top_surf = True
     if surface_coords.shape[0]>1:
