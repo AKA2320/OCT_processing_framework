@@ -74,7 +74,7 @@ jobs:
       uses: actions/upload-artifact@v4 # Action to upload the built executable as an artifact
       with:
         name: OCT_windows_app # Name of the artifact
-        path: dist/OCT_windows_app.tar.gz # Path to the zipped executable
+        path: dist/OCT_windows_app.tar.gz # Path to the zipped executabl
 
   create_release:
     runs-on: ubuntu-latest
