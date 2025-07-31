@@ -11,7 +11,6 @@ from utils.reg_util_funcs import *
 from utils.util_funcs import *
 import yaml
 import torch
-import sys
 # import click
 
 
