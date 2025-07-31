@@ -66,15 +66,15 @@ jobs:
 
     - name: Zip Windows executable
       run: |
-        tar -czvf OCT_windows_app.tar.gz -C dist OCT_windows_app.exe
-        ls -l OCT_windows_app.tar.gz
+        Compress-Archive -Path dist/OCT_windows_app.exe -DestinationPath dist/OCT_windows_app.zip
+        ls -l dist
       shell: pwsh
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4 # Action to upload the built executable as an artifact
       with:
         name: OCT_windows_app # Name of the artifact
-        path: dist/OCT_windows_app.tar.gz # Path to the zipped executabl
+        path: dist/OCT_windows_app.zip
 
   create_release:
     runs-on: ubuntu-latest
