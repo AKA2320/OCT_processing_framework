@@ -104,7 +104,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ./release_assets/windows/OCT_windows_app.tar.gz
+          ./release_assets/windows/OCT_windows_app.zip
           ./release_assets/macos/OCT_mac_app.zip
         name: Release ${{ github.ref_name }} # Unified release name
         tag_name: ${{ github.ref_name }}
