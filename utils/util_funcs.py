@@ -10,6 +10,7 @@ from natsort import natsorted
 # from skimage.filters import threshold_otsu
 # from skimage.metrics import normalized_mutual_information as nmi
 from scipy.signal import correlate2d
+import sys
 
 
 # def load_data(path_num,path_all = False):
@@ -258,3 +259,11 @@ def GUI_load_h5(path_h5):
     with h5py.File(path_h5, 'r') as hf:
         original_data = hf['volume'][:,:,:]
     return original_data
+
+def resource_path(relative_path):
+    """ Get absolute path to resource for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
