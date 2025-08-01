@@ -4,15 +4,19 @@
 
 This project provides a comprehensive framework for performing registration of Optical Coherence Tomography (OCT) volumes. The framework focuses on providing both a user-friendly Graphical User Interface (GUI) and command-line tools for batch processing. It aims to correct for distortions and motion artifacts in OCT images, improving their quality and enabling more accurate analysis through advanced image processing techniques, deep learning models, and optimization algorithms.
 
+Standalone applications for macOS and Windows are also available for download from our GitHub releases, providing a convenient way to use the framework without installing Python or other dependencies.
+
 ## Key Features
 
 *   **Feature Detection:** Employs state-of-the-art YOLO models for detecting anatomical features and structures in OCT images
 *   **Multi-dimensional Motion Correction:** Corrects for motion artifacts in X, Y, and Z (flattening) directions
 *   **Deep Learning Integration:** Utilizes Swin Transformer-based "TransMorph" models for advanced registration tasks
-*   **Flexible Configuration:** Uses YAML configuration files for easy customization of parameters and file paths
+*   **Flexible Configuration:** GUI allows real-time configuration of processing parameters; command-line interface uses YAML configuration files
 *   **Dual Interface:** Provides both GUI (PySide6) and command-line interfaces for different use cases
 *   **Multi-format Support:** Supports `.h5` and `.dcm` OCT data formats
-*   **Batch Processing:** Includes multiprocessing capabilities for handling large datasets efficiently
+*   **Batch Processing:** GUI supports batch processing of multiple volumes; command-line interface includes SLURM multiprocessing capabilities for handling large datasets efficiently
+*   **Standalone Applications:** Pre-built macOS and Windows applications available for easy deployment without Python installation
+*   **Process Cancellation:** GUI provides ability to cancel long-running registration processes
 
 ## Installation
 
@@ -65,6 +69,30 @@ The framework can be used through multiple interfaces depending on your needs:
 
 ### Using the GUI (Recommended for Interactive Use)
 
+The GUI provides a user-friendly interface with three main tabs for different workflows:
+
+#### 1. Load & Visualize Tab
+- Load OCT data from `.h5` or `.dcm` files
+- Visualize data using the integrated Napari viewer
+- Supports both single volume and directory-based loading
+
+#### 2. Register Data Tab
+- Register individual OCT volumes
+- Configure processing parameters in real-time:
+  - Expected Cells: Number of cell layers to detect (default: 2)
+  - Expected Surfaces: Number of surfaces to detect (default: 2)
+  - USE_MODEL_X: Enable/disable X-axis motion correction using TransMorph model
+  - DISABLE_TQDM: Enable/disable progress bars for cleaner output
+- Cancel long-running registration processes using the Cancel button
+
+#### 3. Batch Register Data Tab
+- Process multiple OCT volumes in batch mode
+- Same configurable parameters as single registration
+- Process entire directories of `.h5` files
+- Cancel batch processing if needed
+
+To use the GUI:
+
 1.  **Prepare your OCT data:**
     *   Ensure your `.h5` or `.dcm` files are organized in accessible directories
 
@@ -76,40 +104,75 @@ The framework can be used through multiple interfaces depending on your needs:
 3.  **Configure through the interface:**
     *   Select input data directory
     *   Specify output save directory
-    *   Choose model parameters and processing options
-    *   Monitor progress through the built-in interface
+    *   Adjust processing parameters as needed
+    *   Monitor progress through the built-in output log
 
 ### Using Command-Line Scripts
 
 #### Standard Registration Script
+The command-line interface provides access to advanced features including SLURM-based multiprocessing, which is not available in the GUI.
+
 1. **Configure datapaths.yaml:**
    Edit `datapaths.yaml` to specify:
-   - Input data directory (`DATA_LOAD_DIR`)
-   - Output save directory (`DATA_SAVE_DIR`)
-   - Model paths for feature detection and translation
-   - Processing parameters (`USE_MODEL_X`, `EXPECTED_SURFACES`, `EXPECTED_CELLS`)
+   - Input data directory (`DATA_LOAD_DIR`): Path to the parent directory containing scan folders (e.g., `/path/to/data_folder`).
+   - Output save directory (`DATA_SAVE_DIR`): Path where registered data will be saved (e.g., `/path/to/output_folder`).
+   - Model paths for feature detection and translation.
+   - Processing parameters (`USE_MODEL_X`, `EXPECTED_SURFACES`, `EXPECTED_CELLS`).
+   - Multiprocessing options (`ENABLE_MULTIPROC_SLURM`).
+
+   **Example Directory Structure for Batch Processing:**
+   
+   ```
+   data_folder/
+   ├── scan_001/
+   │   └── scan_001.h5
+   ├── scan_002/
+   │   └── scan_002.h5
+   └── scan_003/
+       └── scan_003.h5
+   ```
+   
+   - Each scan folder (`scan_001`, `scan_002`, etc.) should contain a single `.h5` file with the same name as the folder.
 
 2. **Run the registration:**
    ```shell
    python registration_script.py
    ```
 
-## Configuration
+**Note:** SLURM multiprocessing capabilities are only available through the command-line interface and require additional dependencies. Install them with:
+```shell
+pip install ".[multiproc]"  # Using pip
+# or
+uv pip install ".[multiproc]"  # Using uv (faster)
+```
 
-The framework uses `datapaths.yaml` for configuration:
+### Download
+
+Standalone applications are available for download from our [GitHub Releases](https://github.com/AKA2320/OCT_registration_framework/releases) page. Look for the latest release and download the appropriate file for your operating system:
+
+- **macOS**: Download `OCT_mac_app.zip` and unzip the file. The application can be run directly by double-clicking `OCT_mac_app.app`.
+- **Windows**: Download `OCT_windows_app.zip` and unzip the file. The application can be run directly by double-clicking `OCT_windows_app.exe`.
+
+### Usage
+
+The standalone applications provide the same GUI interface as the Python version, with the same three tabs for loading, registering, and batch processing OCT data. All features available in the GUI are supported in the standalone applications.
+
 
 ## Core Components
 
 ### Main Scripts
-- **`pyside_gui.py`**: PySide6-based GUI application providing interactive registration workflow
-- **`registration_script.py`**: Core registration backend for command-line usage
+- **`pyside_gui.py`**: PySide6-based GUI application providing interactive registration workflow with three tabs (Load & Visualize, Register Data, Batch Register Data)
+- **`registration_script.py`**: Core registration backend for command-line usage with SLURM multiprocessing support
 
 ### Key Modules
-- **`utils/reg_util_funcs.py`**: Core registration utilities including motion correction, flattening, and feature detection
-- **`utils/util_funcs.py`**: General-purpose utility functions for data handling and processing
-- **`GUI_scripts/gui_registration_script.py`**: GUI-specific registration workflow management
-- **`funcs_transmorph.py`**: TransMorph model implementation and integration
+- **`utils/reg_util_funcs.py`**: Core registration utilities including motion correction, flattening, and feature detection functions
+- **`utils/util_funcs.py`**: General-purpose utility functions for data handling and processing, including file loading and preprocessing
+- **`GUI_scripts/gui_registration_script.py`**: GUI-specific registration workflow management with cancellation support
+- **`funcs_transmorph.py`**: TransMorph model implementation and integration for deep learning-based registration
 - **`config_transmorph.py`**: TransMorph model configuration parameters
+
+### GUI Components
+- **`GUI_scripts/`**: Directory containing GUI-specific scripts and modules
 
 ### Models
 The `models/` directory contains pre-trained models:
@@ -123,5 +186,5 @@ Key dependencies (see `pyproject.toml` for complete list):
 - **Deep Learning**: PyTorch
 - **Image Processing**: scikit-image, OpenCV
 - **GUI**: PySide6, Napari (for visualization)
-- **Data Handling**: h5py, pydicom, numpy, dask
-- **SLURM Multiprocessing**: dask
+- **Data Handling**: h5py, pydicom, numpy
+- **SLURM Multiprocessing** (Command-line only): dask, dask-jobqueue
