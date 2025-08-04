@@ -46,20 +46,30 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
+
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries, # Include binaries from analysis (e.g., PySide6 DLLs)
-    a.datas,    # Include data files from analysis
     [],
-    name='OCT_windows_app', # Changed name for Windows executable
+    exclude_binaries=True,
+    name='OCT_windows_app',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False, # Keep False for a GUI application
+    console=False,
     disable_windowed_traceback=False,
+    argv_emulation=False,
     target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='OCT_windows_app',
 )
