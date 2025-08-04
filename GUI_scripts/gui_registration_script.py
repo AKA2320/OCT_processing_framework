@@ -1,4 +1,7 @@
 # import matplotlib.pylab as plt
+import multiprocessing
+multiprocessing.freeze_support()
+
 import numpy as np
 import os
 from skimage.transform import warp, AffineTransform
@@ -11,8 +14,6 @@ from utils.reg_util_funcs import *
 from utils.util_funcs import *
 import yaml
 import torch
-
-
 
 try:
     with open('datapaths.yaml', 'r') as f:

@@ -1,4 +1,6 @@
 # main_gui.py
+import multiprocessing
+multiprocessing.freeze_support()
 
 import sys
 import os
@@ -18,7 +20,6 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QProcess, QThread, Signal
 import napari
-import multiprocessing
 from utils.util_funcs import GUI_load_h5, GUI_load_dcm
 from GUI_scripts.gui_registration_script import gui_input
 
