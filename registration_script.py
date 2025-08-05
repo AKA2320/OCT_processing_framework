@@ -3,10 +3,9 @@ import sys
 import matplotlib.pylab as plt
 import numpy as np
 import os
-from skimage.transform import warp, AffineTransform, pyramid_expand, pyramid_reduce
+from skimage.transform import warp, AffineTransform
 from natsort import natsorted
 from tqdm import tqdm
-from tqdm.utils import envwrap
 import h5py
 from ultralytics import YOLO
 from utils.reg_util_funcs import *
@@ -173,25 +172,6 @@ def init_worker():
     global MODEL_FEATURE_DETECT
     global MODEL_X_TRANSLATION
     
-    # with open('datapaths.yaml', 'r') as f:
-    #     config = yaml.safe_load(f)
-    
-    # MODEL_FEATURE_DETECT = YOLO(config['PATHS']['MODEL_FEATURE_DETECT_PATH'])
-    
-    # if config['PATHS']['USE_MODEL_X']:
-    #     try:
-    #         DEVICE = 'cpu'
-    #         MODEL_X_TRANSLATION = torch.load(config['PATHS']['MODEL_X_TRANSLATION_PATH'], 
-    #                                        map_location=DEVICE, weights_only=False)
-    #         MODEL_X_TRANSLATION.eval()
-    #         print("Model X loaded successfully on worker")
-    #     except Exception as e:
-    #         print(f"Error loading Model X on worker: {e}")
-    #         print("Proceeding without Model X translation on worker")
-    #         MODEL_X_TRANSLATION = None
-    # else:
-    #     MODEL_X_TRANSLATION = None
-
 if __name__ == "__main__":
     data_dirname = DATA_LOAD_DIR
     if data_dirname.endswith('/'):
