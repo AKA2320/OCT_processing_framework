@@ -18,6 +18,7 @@ funcs_transmorph_py_path = 'funcs_transmorph.py'
 datapaths_yaml_path = 'datapaths.yaml'
 models_path = 'models'
 pyside_gui_py_path = 'pyside_gui.py'
+icon_path = 'Tankam-Lab-Logo-2.png'
 
 a = Analysis(
     [pyside_gui_py_path],
@@ -28,8 +29,9 @@ a = Analysis(
         (config_py_path, '.'),
         (funcs_transmorph_py_path, '.'),
         (datapaths_yaml_path, '.'),
-        (napari_path, 'napari'), # Re-added napari
-        (vispy_path, 'vispy')    # Re-added vispy
+        (napari_path, 'napari'),
+        (vispy_path, 'vispy'),
+        (icon_path, '.')
     ],
     hiddenimports=[
         'GUI_scripts', 'utils', 'pydicom', 'skimage', 'scipy', 'napari',
@@ -74,6 +76,6 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='OCT_mac_app.app',
-    icon=None,
+    icon=icon_path,
     bundle_identifier=None,
 )
