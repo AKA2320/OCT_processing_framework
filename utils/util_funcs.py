@@ -185,15 +185,6 @@ def merge_intervals(intervals):
     return merged
 
 def load_h5_data(dirname, scan_num):
-    # path = f'{dirname}/{scan_num}/'
-    # # path = 'intervolume_registered/self_inter/scan5/'
-    # pic_paths = []
-    # for i in os.listdir(path):
-    #     if i.endswith('.h5'):
-    #         pic_paths.append(i)
-    # with h5py.File(path+pic_paths[0], 'r') as hf:
-    #     original_data = hf['volume'][:,100:-100,:].astype(np.float32)
-    # return original_data
     if dirname.endswith(('.h5','.hdf5')):
         with h5py.File(dirname, 'r') as hf:
             data = hf['volume'][:,100:-100,:]
@@ -208,33 +199,28 @@ def load_h5_data(dirname, scan_num):
         return original_data
 
 def load_data_dcm(dirname, scan_num):
-    # path = f'{dirname}/{scan_num}/'
-    # # path = path_num
-    # pic_paths = []
-    # for i in os.listdir(path):
-    #     if i.endswith('.dcm') or  i.endswith('.DCM'):
-    #         pic_paths.append(i)
-    # pic_paths = natsorted(pic_paths)
-    # temp_img = dcmread(path+pic_paths[0]).pixel_array
-    # imgs_from_folder = np.zeros((len(pic_paths),*temp_img.shape))
-    # for i,j in enumerate(pic_paths):
-    #     aa = dcmread(path+j)
-    #     imgs_from_folder[i] = aa.pixel_array
-    # imgs_from_folder = imgs_from_folder[:,100:-100,:].astype(np.float32)
-    # return imgs_from_folder
     if not dirname.endswith('/'):
         dirname = dirname+'/'
-    pic_paths = []
-    for i in os.listdir(dirname):
-        if i.endswith('.dcm') or  i.endswith('.DCM'):
-            pic_paths.append(i)
-    pic_paths = natsorted(pic_paths)
-    temp_img = dcmread(dirname+pic_paths[0]).pixel_array
-    imgs_from_folder = np.zeros((len(pic_paths),*temp_img.shape))
-    for i,j in enumerate(pic_paths):
-        imgs_from_folder[i] = dcmread(dirname+j).pixel_array
-    imgs_from_folder = imgs_from_folder[:,100:-100,:]
-    return imgs_from_folder
+    if os.listdir(dirname)[0].endswith(('.dcm','.DCM')):
+        pic_paths = [i for i in os.listdir(dirname) if i.endswith('.dcm') or i.endswith('.DCM')]
+        pic_paths = natsorted(pic_paths)
+        temp_img = dcmread(os.path.join(dirname,pic_paths[0])).pixel_array
+        imgs_from_folder = np.zeros((len(pic_paths),*temp_img.shape))
+        for i,j in enumerate(pic_paths):
+            imgs_from_folder[i] = dcmread(os.path.join(dirname, j)).pixel_array
+        imgs_from_folder = imgs_from_folder[:,100:-100,:]
+        return imgs_from_folder
+    else:
+        current_scan_path = os.path.join(dirname, scan_num)
+        pic_paths = [i for i in os.listdir(current_scan_path) if i.endswith('.dcm') or i.endswith('.DCM')]
+        pic_paths = natsorted(pic_paths)
+        temp_img = dcmread(os.path.join(current_scan_path, pic_paths[0])).pixel_array
+        imgs_from_folder = np.zeros((len(pic_paths),*temp_img.shape))
+        for i,j in enumerate(pic_paths):
+            imgs_from_folder[i] = dcmread(os.path.join(current_scan_path, j)).pixel_array
+        imgs_from_folder = imgs_from_folder[:,100:-100,:]
+        return imgs_from_folder
+    
 
 def GUI_load_dcm(path_dir):
     # path = path_num

@@ -1,4 +1,3 @@
-import gc
 # from pydicom import dcmread
 from skimage.transform import warp, AffineTransform
 from tqdm import tqdm
@@ -144,15 +143,23 @@ def mse_fun_tran_x(shif, x, y , past_shift):
     err = np.squeeze(1-ncc(warped_x_stat ,warped_y_mov))
     return float(err)
 
-def get_line_shift(line_1d_stat, line_1d_mov,enface_shape):
-    st = line_1d_stat
-    mv = line_1d_mov
+def get_line_shift(line_1d_stat, line_1d_mov):
     past_shift = 0
-    for _ in range(10):
+    for _ in range(7):
         move = minz(method='powell',fun = shift_func,x0 = np.array([0.0]),bounds =[(-4,4)],
-                args = (st
-                        ,mv
+                args = (line_1d_stat
+                        ,line_1d_mov
                         ,past_shift))['x']
+        past_shift += move[0]
+    return -past_shift*2 # Negative because scipy shift returns opposite direction shift
+
+def get_cell_patch_shift(patch_stat, patch__mov):
+    past_shift = 0
+    for _ in range(7):
+        move = minz(method='powell',fun = mse_fun_tran_x,x0 = np.array([0.0]), bounds=[(-4,4)],
+                    args = (patch_stat
+                            ,patch__mov
+                            ,past_shift))['x']
         past_shift += move[0]
     return past_shift*2
 
@@ -167,85 +174,68 @@ def check_multiple_warps(stat_img, mov_img, *args):
         errors.append(check_best_warp(stat_img, mov_img, warps[warp_value]))
     return np.argmax(errors)
 
-def all_trans_x(data,UP_x,DOWN_x,valid_args,enface_extraction_rows,disable_tqdm,scan_num, MODEL_X_TRANSLATION):
+
+def all_trans_x(data, cells_coords, valid_args, enface_extraction_rows, disable_tqdm, scan_num, MODEL_X_TRANSLATION):
     transforms_all = np.tile(np.eye(3),(data.shape[0],1,1))
     for i in tqdm(range(0,data.shape[0]-1,2),desc='X-motion Correction',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
         try:
             if i not in valid_args:
                 continue
+            cell_warps = []    
             try:
-                if (UP_x is not None) and (DOWN_x is not None):
-                    UP_x , DOWN_x = np.squeeze(np.array(UP_x)), np.squeeze(np.array(DOWN_x))
-                    if UP_x.size>1 and DOWN_x.size>1:
-                        stat = data[i,np.r_[UP_x[0]:DOWN_x[0],UP_x[1]:DOWN_x[1]],:]
-                        temp_manual = data[i+1,np.r_[UP_x[0]:DOWN_x[0],UP_x[1]:DOWN_x[1]],:]
-                    else:
-                        stat = data[i,UP_x:DOWN_x,:]
-                        temp_manual = data[i+1,UP_x:DOWN_x,:]
-                    # MANUAL
-                    temp_tform_manual = AffineTransform(translation=(0,0))
-                    past_shift = 0
+                if (cells_coords is not None):
                     if MODEL_X_TRANSLATION is not None:
-                        past_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, stat, temp_manual, DEVICE = 'cpu'))[0]
-                        cross_section = -(past_shift)
+                        for UP_x, DOWN_x in cells_coords:
+                            stat = data[i, UP_x:DOWN_x, :]
+                            temp_manual = data[i+1, UP_x:DOWN_x, :]
+                            temp_cell_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, stat, temp_manual, DEVICE = 'cpu'))[0]
+                            inv_temp_cell_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, temp_manual, stat, DEVICE = 'cpu'))[0]
+                            error_cell = abs(temp_cell_shift + inv_temp_cell_shift)
+                            cell_warps.append((error_cell, temp_cell_shift))
                     else:
-                        for _ in range(10):
-                            move = minz(method='powell',fun = mse_fun_tran_x,x0 = np.array([0.0]), bounds=[(-4,4)],
-                                        args = (stat
-                                                ,temp_manual
-                                                ,past_shift))['x']
-                            past_shift += move[0]
-                        cross_section = -(past_shift*2)
-                else:
-                    cross_section = 0
+                        if cells_coords.shape[0]==1:
+                            UP_x, DOWN_x = cells_coords[0,0], cells_coords[0,1]
+                            stat = data[i, UP_x:DOWN_x, :]
+                            temp_manual = data[i+1, UP_x:DOWN_x, :]
+                        else:
+                            stat = data[i,np.r_[tuple(np.r_[start:end] for start, end in cells_coords)],:]
+                            temp_manual = data[i+1,np.r_[tuple(np.r_[start:end] for start, end in cells_coords)],:]
+                        # MANUAL
+                        temp_cell_patch_shift = get_cell_patch_shift(stat,temp_manual)
+                        inv_temp_cell_patch_shift = get_cell_patch_shift(temp_manual,stat)
+                        error_cell = abs(temp_cell_patch_shift + inv_temp_cell_patch_shift)
+                        cell_warps.append((error_cell, temp_cell_patch_shift))
             except Exception as e:
-                # with open(f'debugs/debug{scan_num}.txt', 'a') as f:
-                #     f.write(f'Cell cross_section failed here\n')
-                #     f.write(f'UP_x: {UP_x}, DOWN_x: {DOWN_x}\n')
-                #     f.write(f'NAME: {scan_num}\n')
-                #     f.write(f'Ith: {i}\n')
-                #     f.write(f'enface_extraction_rows: {enface_extraction_rows}\n')
-                # raise Exception(e)
-                cross_section = 0
-            '''
-            enface_shape = data[:,0,:].shape[1]
+                cell_warps = [(float('inf'), 0.0)]
+            # enface_shape = data[:,0,:].shape[1]
             enface_wraps = []
             if len(enface_extraction_rows)>0:
                 for enf_idx in range(len(enface_extraction_rows)):
                     try:
                         if MODEL_X_TRANSLATION is not None:
-                            bottom_row = min(0, enface_extraction_rows[enf_idx]-20)
-                            temp_enface_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, data[i,bottom_row:enface_extraction_rows[enf_idx]+20]
-                                                                                                    ,data[i+1,bottom_row:enface_extraction_rows[enf_idx]+20]
-                                                                                                    ,DEVICE = 'cpu'))[0]
+                            bottom_row = max(0, enface_extraction_rows[enf_idx]-32)
+                            stat = data[i,bottom_row:enface_extraction_rows[enf_idx]+32]
+                            temp_manual = data[i+1,bottom_row:enface_extraction_rows[enf_idx]+32]
+                            temp_enface_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, stat, temp_manual, DEVICE = 'cpu'))[0]
+                            inv_temp_enface_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, temp_manual, stat ,DEVICE = 'cpu'))[0]
+                            error_enface = abs(temp_enface_shift + inv_temp_enface_shift)
+                            enface_wraps.append((error_enface, temp_enface_shift))
                         else:
-                            temp_enface_shift = get_line_shift(data[i,enface_extraction_rows[enf_idx]]
-                                                               ,data[i+1,enface_extraction_rows[enf_idx]],enface_shape)
+                            stat = data[i, enface_extraction_rows[enf_idx]]
+                            temp_manual = data[i+1, enface_extraction_rows[enf_idx]]
+                            temp_enface_shift = get_line_shift(stat, temp_manual)
+                            inv_temp_enface_shift = get_line_shift(temp_manual, stat)
+                            error_enface = abs(temp_enface_shift + inv_temp_enface_shift)
+                            enface_wraps.append((error_enface, temp_enface_shift))
                     except Exception as e:
-                        # with open(f'debugs/debug{scan_num}.txt', 'a') as f:
-                        #     f.write(f'TEMP enface shift failed here\n')
-                        #     f.write(f'UP_x: {UP_x}, DOWN_x: {DOWN_x}\n')
-                        #     f.write(f'NAME: {scan_num}\n')
-                        #     f.write(f'Ith: {i}\n')
-                        #     f.write(f'enface_extraction_rows: {enface_extraction_rows}\n')
-                        raise Exception(e)
-                        temp_enface_shift = 0
-                    enface_wraps.append(temp_enface_shift)
-            all_warps = [cross_section,*enface_wraps]
-            best_warp = check_multiple_warps(data[i], data[i+1], all_warps)
-            '''
-            # temp_tform_manual = AffineTransform(translation=(-(all_warps[best_warp]),0))
-            temp_tform_manual = AffineTransform(translation=(-cross_section,0))
+                        enface_wraps = [(float('inf'), 0.0)]
+            all_warps = [*cell_warps,*enface_wraps]
+            all_warps = sorted(all_warps, key=lambda x: x[0])  # Sort by error
+            # best_warp = check_multiple_warps(data[i], data[i+1], all_warps)
+            temp_tform_manual = AffineTransform(translation=(all_warps[0][1],0))
+            # temp_tform_manual = AffineTransform(translation=(-cell_warps,0))
             transforms_all[i+1] = np.dot(transforms_all[i+1],temp_tform_manual)
-            gc.collect()
         except Exception as e:
-            # with open(f'debugs/debug{scan_num}.txt', 'a') as f:
-            #     f.write(f'X motion EVERYTHIN FAILED HERE\n')
-            #     f.write(f'UP_x: {UP_x}, DOWN_x: {DOWN_x}\n')
-            #     f.write(f'NAME: {scan_num}\n')
-            #     f.write(f'Ith: {i}\n')
-            #     f.write(f'enface_extraction_rows: {enface_extraction_rows}\n')
-            # raise Exception(e)
             temp_tform_manual = AffineTransform(translation=(0,0))
             transforms_all[i+1] = np.dot(transforms_all[i+1],temp_tform_manual)
     return transforms_all
@@ -359,9 +349,8 @@ transform = transforms.Compose([
 ])
 
 def infer_x_translation(model_obj, static_np, moving_np, DEVICE):
-    # Ensure float32 numpy arrays
-    static_np = transform(static_np.astype(np.float32))
-    moving_np = transform(moving_np.astype(np.float32))
+    static_np = transform(static_np)
+    moving_np = transform(moving_np)
     
     # Add batch and channel dim: (1, 1, H, W)
     static_np = normalize(static_np.unsqueeze(0)).to(DEVICE)
@@ -374,4 +363,3 @@ def infer_x_translation(model_obj, static_np, moving_np, DEVICE):
         # warped = warper(moving.double(), pred_translation)
     # warped_np = warped.squeeze().numpy()
     return pred_translation.squeeze().numpy()
-
