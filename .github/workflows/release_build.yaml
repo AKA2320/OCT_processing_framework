@@ -14,6 +14,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4 # Action to checkout your repository code
+      with:
+        lfs: true # Ensure LFS files are pulled if using Git LFS
 
     - name: Set up Python
       uses: actions/setup-python@v5 # Action to set up Python
@@ -49,6 +51,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4 # Action to checkout your repository code
+      with:
+        lfs: true # Ensure LFS files are pulled if using Git LFS
 
     - name: Set up Python
       uses: actions/setup-python@v5 # Action to set up Python
@@ -84,6 +88,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        lfs: true # Ensure LFS files are pulled if using Git LFS
 
     - name: Download Windows artifact
       uses: actions/download-artifact@v4
