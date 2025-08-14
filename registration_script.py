@@ -11,6 +11,7 @@ from utils.reg_util_funcs import *
 from utils.util_funcs import *
 import yaml
 import torch
+import time
 
 with open('datapaths.yaml', 'r') as f:
     config = yaml.safe_load(f)
@@ -53,9 +54,8 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
         if not os.path.exists(dirname):
             raise FileNotFoundError(f"Directory {dirname} not found")
         original_data = load_data_dcm(dirname,scan_num)
-    # MODEL_FEATURE_DETECT PART
-    # print(original_data.shape)
 
+    # MODEL_FEATURE_DETECT PART
     pbar.set_description(desc = f'Loading Model_FEATURE_DETECT for {scan_num}')
     static_flat = np.argmax(np.sum(original_data[:,:,:],axis=(0,1)))
     test_detect_img = preprocess_img(original_data[:,:,static_flat])
@@ -139,20 +139,8 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
     else:
         valid_args = np.arange(cropped_original_data.shape[0])
 
-    if cells_coords is not None:
-        if cells_coords.shape[0]==1:
-            UP_x, DOWN_x = (cells_coords[0,0]), (cells_coords[0,1])
-        else:
-            UP_x, DOWN_x = (cells_coords[:,0]), (cells_coords[:,1])
-    else:
-        UP_x, DOWN_x = None,None
-
-    # print('UP_x:',UP_x)
-    # print('DOWN_x:',DOWN_x)
-    # # print('VALID ARGS: ',valid_args)
-    # print('ENFACE EXTRACTION ROWS: ',enface_extraction_rows)
-    tr_all = all_trans_x(cropped_original_data,UP_x,DOWN_x,valid_args,enface_extraction_rows
-                         ,disable_tqdm,scan_num, MODEL_X_TRANSLATION)
+    tr_all = all_trans_x(cropped_original_data, cells_coords, valid_args, enface_extraction_rows
+                         ,disable_tqdm, scan_num, MODEL_X_TRANSLATION)
     for i in tqdm(range(1,cropped_original_data.shape[0],2),desc='X-motion warping',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
         cropped_original_data[i]  = warp(cropped_original_data[i],AffineTransform(matrix=tr_all[i]),order=3)
 
@@ -185,7 +173,11 @@ if __name__ == "__main__":
     else:
         scans = [i for i in os.listdir(data_dirname) if (i.startswith('scan'))]
         scans = natsorted(scans)
-        data_type = 'h5'
+        first_path = os.listdir(os.path.join(data_dirname,scans[0]))[0]
+        if first_path.endswith('.h5'):
+            data_type = 'h5'
+        else:
+            data_type = 'dcm'
 
     pbar = tqdm(scans, desc='Processing Scans',total = len(scans), ascii="░▖▘▝▗▚▞█", disable=DISABLE_TQDM)
     if not ENABLE_MULTIPROC_SLURM:
@@ -193,7 +185,9 @@ if __name__ == "__main__":
         save_detections = False
         for scan_num in pbar:
             pbar.set_description(desc = f'Processing {scan_num}')
+            start = time.time()
             main(data_dirname, scan_num, pbar, data_type, disable_tqdm, save_detections)
+            print(f'Time taken: {time.time() - start:.2f} seconds')
 
     elif ENABLE_MULTIPROC_SLURM:
         try:
