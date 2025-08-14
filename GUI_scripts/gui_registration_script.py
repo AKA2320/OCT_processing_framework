@@ -1,7 +1,7 @@
 # import matplotlib.pylab as plt
 import multiprocessing
 multiprocessing.freeze_support()
-
+import time
 import numpy as np
 import os
 from skimage.transform import warp, AffineTransform
@@ -64,7 +64,6 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, use_
     elif data_type=='dcm':
         original_data = load_data_dcm(dirname,scan_num)
     # MODEL_FEATURE_DETECT PART
-    print(original_data.shape)
 
     pbar.set_description(desc = f'Loading Model_FEATURE_DETECT for {scan_num}')
     static_flat = np.argmax(np.sum(original_data[:,:,:],axis=(0,1)))
@@ -83,12 +82,8 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, use_
     static_flat = np.argmax(np.sum(cropped_original_data[:,:,:],axis=(0,1)))
     test_detect_img = preprocess_img(cropped_original_data[:,:,static_flat])
     res_surface = MODEL_FEATURE_DETECT.predict(test_detect_img,iou = 0.5, save = False, verbose=False,classes=0, device='cpu',agnostic_nms = True, augment = True)
-    # result_list = res[0].summary()
     surface_coords = detect_areas(res_surface[0].summary(),pad_val = SURFACE_Y_PAD, img_shape = test_detect_img.shape[0], expected_num = EXPECTED_SURFACES)
     if surface_coords is None:
-        # with open(f'debugs/debug{scan_num}.txt', 'a') as f:
-        #     f.write(f'NO SURFACE DETECTED: {scan_num}\n')
-        #     f.write(f'min range: {cropped_original_data.min(),cropped_original_data.max()}\n')
         print(f'NO SURFACE DETECTED: {scan_num}')
         return None
     if EXPECTED_SURFACES>1:
@@ -158,8 +153,6 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, use_
 
     if (cells_coords is None) and (surface_coords is None):
         print(f'NO SURFACE OR CELLS DETECTED: {scan_num}')
-        # with open(f'debugs/debug{scan_num}.txt', 'a') as f:
-        #     f.write(f'NO SURFACE OR CELLS DETECTED: {scan_num}\n')
         return None
     
     enface_extraction_rows = []
@@ -176,20 +169,8 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, use_
     else:
         valid_args = np.arange(cropped_original_data.shape[0])
 
-    if cells_coords is not None:
-        if cells_coords.shape[0]==1:
-            UP_x, DOWN_x = (cells_coords[0,0]), (cells_coords[0,1])
-        else:
-            UP_x, DOWN_x = (cells_coords[:,0]), (cells_coords[:,1])
-    else:
-        UP_x, DOWN_x = None,None
-
-    # print('UP_x:',UP_x)
-    # print('DOWN_x:',DOWN_x)
-    # # print('VALID ARGS: ',valid_args)
-    # print('ENFACE EXTRACTION ROWS: ',enface_extraction_rows)
-    tr_all = all_trans_x(cropped_original_data,UP_x,DOWN_x,valid_args,enface_extraction_rows
-                         ,disable_tqdm,scan_num, MODEL_X_TRANSLATION)
+    tr_all = all_trans_x(cropped_original_data, cells_coords, valid_args, enface_extraction_rows
+                         ,disable_tqdm, scan_num, MODEL_X_TRANSLATION)
     for i in tqdm(range(1,cropped_original_data.shape[0],2),desc='X-motion warping',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
         cropped_original_data[i]  = warp(cropped_original_data[i],AffineTransform(matrix=tr_all[i]),order=3)
 
@@ -231,7 +212,11 @@ def run_pipeline(data_dirname, disable_tqdm, use_model_x, save_dirname, expected
     else:
         scans = [i for i in os.listdir(data_dirname) if (i.startswith('scan'))]
         scans = natsorted(scans)
-        data_type = 'h5'
+        first_path = os.listdir(os.path.join(data_dirname,scans[0]))[0]
+        if first_path.endswith('.h5'):
+            data_type = 'h5'
+        else:
+            data_type = 'dcm'
 
     pbar = tqdm(scans, desc='Processing Scans',total = len(scans), ascii="░▖▘▝▗▚▞█", disable=disable_tqdm)
     for scan_num in pbar:
@@ -239,6 +224,7 @@ def run_pipeline(data_dirname, disable_tqdm, use_model_x, save_dirname, expected
             print("Registration cancelled by user")
             return
         pbar.set_description(desc = f'Processing {scan_num}')
+        start = time.time()
         main(
             data_dirname, scan_num, pbar, data_type,
             disable_tqdm=disable_tqdm,
@@ -249,6 +235,7 @@ def run_pipeline(data_dirname, disable_tqdm, use_model_x, save_dirname, expected
             expected_surfaces=expected_surfaces,
             cancellation_flag=cancellation_flag
         )
+        print(f'Time taken: {time.time() - start:.2f} seconds')
 
 def gui_input(dirname, use_model_x, disable_tqdm, save_dirname, expected_cells, expected_surfaces,batch_data_flag, cancellation_flag=None):
     print(f"Data Load Directory: {dirname}")
