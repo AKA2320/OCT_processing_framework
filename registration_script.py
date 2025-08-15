@@ -203,7 +203,7 @@ if __name__ == "__main__":
         print("Setting up Dask SLURM cluster...")
         cluster = SLURMCluster(
             queue='general',
-            account='r00970',
+            account='ACC_NUMBER',
             cores=1, 
             processes=1,
             memory='10GB',
