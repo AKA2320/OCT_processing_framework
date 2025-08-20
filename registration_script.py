@@ -29,10 +29,11 @@ EXPECTED_CELLS = config['PATHS']['EXPECTED_CELLS']
 BATCH_FLAG = config['PATHS']['BATCH_FLAG']
 DISABLE_TQDM = config['PATHS']['DISABLE_TQDM']
 ENABLE_MULTIPROC_SLURM = config['PATHS']['ENABLE_MULTIPROC_SLURM']
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 if USE_MODEL_X:
     try:
-        DEVICE = 'cpu'
+        DEVICE = DEVICE
         MODEL_X_TRANSLATION = torch.load(MODEL_X_TRANSLATION_PATH, map_location=DEVICE, weights_only=False)
         MODEL_X_TRANSLATION.eval()
         print("Model X loaded successfully.")
@@ -70,6 +71,16 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
     cropped_original_data = crop_data(original_data,surface_crop_coords,cells_crop_coords,original_data.shape[1])
     del original_data
 
+    # Pre-registration save
+    if cropped_original_data.dtype != np.float64:
+        cropped_original_data = cropped_original_data.astype(np.float64)
+    folder_save = DATA_SAVE_DIR
+    if not folder_save.endswith('/'):
+        folder_save = folder_save + '/'
+    os.makedirs(folder_save,exist_ok=True)
+    hdf5_filename = f'{folder_save}{scan_num}_unregistered.h5'
+    with h5py.File(hdf5_filename, 'w') as hf:
+        hf.create_dataset('volume', data=cropped_original_data, compression='gzip',compression_opts=5)
     # print('SURFACE CROP COORDS:',surface_crop_coords)
 
     static_flat = np.argmax(np.sum(cropped_original_data[:,:,:],axis=(0,1)))
@@ -151,7 +162,7 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
     if not folder_save.endswith('/'):
         folder_save = folder_save + '/'
     os.makedirs(folder_save,exist_ok=True)
-    hdf5_filename = f'{folder_save}{scan_num}.h5'
+    hdf5_filename = f'{folder_save}{scan_num}_registered.h5'
     with h5py.File(hdf5_filename, 'w') as hf:
         hf.create_dataset('volume', data=cropped_original_data, compression='gzip',compression_opts=5)
 

@@ -1,5 +1,7 @@
 # from pydicom import dcmread
+import time
 from skimage.transform import warp, AffineTransform
+import cv2
 from tqdm import tqdm
 import numpy as np
 from utils.util_funcs import *
@@ -10,14 +12,24 @@ from scipy import ndimage as scp
 import torch
 from torchvision import transforms
 import torch.nn.functional as F
-
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ## Flattening Functions
- 
+
+def warp_image_affine(image, shifts):
+    mat = np.float32([[1, 0, -shifts[0]], [0, 1, -shifts[1]]])
+    rows, cols = image.shape
+    warped_image = cv2.warpAffine(image, mat, (cols, rows), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    return warped_image
+
 def mse_fun_tran_flat(shif, x, y , past_shift):
-    x = warp(x, AffineTransform(translation=(-past_shift,0)),order=1)
-    y = warp(y, AffineTransform(translation=(past_shift,0)),order=1)
-    warped_x_stat = warp(x, AffineTransform(translation=(-shif[0],0)),order=1)
-    warped_y_mov = warp(y, AffineTransform(translation=(shif[0],0)),order=1)
+    x = warp_image_affine(x, [-past_shift,0])
+    y = warp_image_affine(y, [past_shift,0])
+    warped_x_stat = warp_image_affine(x, [-shif[0],0])
+    warped_y_mov = warp_image_affine(y, [shif[0],0])
+    # x = warp(x, AffineTransform(translation=(-past_shift,0)),order=1)
+    # y = warp(y, AffineTransform(translation=(past_shift,0)),order=1)
+    # warped_x_stat = warp(x, AffineTransform(translation=(-shif[0],0)),order=1)
+    # warped_y_mov = warp(y, AffineTransform(translation=(shif[0],0)),order=1)
     err = np.squeeze(1-ncc(warped_x_stat ,warped_y_mov))
     return float(err)
     
@@ -67,10 +79,14 @@ def flatten_data(data,slice_coords,top_surf, partition_coord,disable_tqdm, scan_
 ## Y-Motion Functions
 
 def mse_fun_tran_y(shif, x, y , past_shift):
-    x = warp(x, AffineTransform(translation=(0,-past_shift)),order=3)
-    y = warp(y, AffineTransform(translation=(0,past_shift)),order=3)
-    warped_x_stat = warp(x, AffineTransform(translation=(0,-shif[0])),order=3)
-    warped_y_mov = warp(y, AffineTransform(translation=(0,shif[0])),order=3)
+    x = warp_image_affine(x, [0,-past_shift])
+    y = warp_image_affine(y, [0,past_shift])
+    warped_x_stat = warp_image_affine(x, [0,-shif[0]])
+    warped_y_mov = warp_image_affine(y, [0,shif[0]])
+    # x = warp(x, AffineTransform(translation=(0,-past_shift)),order=3)
+    # y = warp(y, AffineTransform(translation=(0,past_shift)),order=3)
+    # warped_x_stat = warp(x, AffineTransform(translation=(0,-shif[0])),order=3)
+    # warped_y_mov = warp(y, AffineTransform(translation=(0,shif[0])),order=3)
     err = np.squeeze(1-ncc(warped_x_stat ,warped_y_mov))
     return float(err)
 
@@ -136,10 +152,14 @@ def ncc1d(array1, array2):
     return normalized_correlation
 
 def mse_fun_tran_x(shif, x, y , past_shift):
-    x = warp(x, AffineTransform(translation=(-past_shift,0)),order=3)
-    y = warp(y, AffineTransform(translation=(past_shift,0)),order=3)
-    warped_x_stat = warp(x, AffineTransform(translation=(-shif[0],0)),order=3)
-    warped_y_mov = warp(y, AffineTransform(translation=(shif[0],0)),order=3)
+    x = warp_image_affine(x, [-past_shift,0])
+    y = warp_image_affine(y, [past_shift,0])
+    warped_x_stat = warp_image_affine(x, [-shif[0],0])
+    warped_y_mov = warp_image_affine(y, [shif[0],0])
+    # x = warp(x, AffineTransform(translation=(-past_shift,0)),order=3)
+    # y = warp(y, AffineTransform(translation=(past_shift,0)),order=3)
+    # warped_x_stat = warp(x, AffineTransform(translation=(-shif[0],0)),order=3)
+    # warped_y_mov = warp(y, AffineTransform(translation=(shif[0],0)),order=3)
     err = np.squeeze(1-ncc(warped_x_stat ,warped_y_mov))
     return float(err)
 
@@ -178,66 +198,72 @@ def check_multiple_warps(stat_img, mov_img, *args):
 def all_trans_x(data, cells_coords, valid_args, enface_extraction_rows, disable_tqdm, scan_num, MODEL_X_TRANSLATION):
     transforms_all = np.tile(np.eye(3),(data.shape[0],1,1))
     for i in tqdm(range(0,data.shape[0]-1,2),desc='X-motion Correction',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
+        st_time = time.time()
+        if i not in valid_args:
+            continue
+        cell_warps = []    
         try:
-            if i not in valid_args:
-                continue
-            cell_warps = []    
-            try:
-                if (cells_coords is not None):
-                    if MODEL_X_TRANSLATION is not None:
-                        for UP_x, DOWN_x in cells_coords:
-                            stat = data[i, UP_x:DOWN_x, :]
-                            temp_manual = data[i+1, UP_x:DOWN_x, :]
-                            temp_cell_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, stat, temp_manual, DEVICE = 'cpu'))[0]
-                            inv_temp_cell_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, temp_manual, stat, DEVICE = 'cpu'))[0]
-                            error_cell = abs(temp_cell_shift + inv_temp_cell_shift)
-                            cell_warps.append((error_cell, temp_cell_shift))
+            if (cells_coords is not None):
+                if MODEL_X_TRANSLATION is not None:
+                    for UP_x, DOWN_x in cells_coords:
+                        stat = data[i, UP_x:DOWN_x, :]
+                        temp_manual = data[i+1, UP_x:DOWN_x, :]
+                        temp_cell_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, stat, temp_manual, DEVICE = 'cpu'))[0]
+                        inv_temp_cell_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, temp_manual, stat, DEVICE = 'cpu'))[0]
+                        error_cell = abs(temp_cell_shift + inv_temp_cell_shift)
+                        cell_warps.append((error_cell, temp_cell_shift))
+                else:
+                    if cells_coords.shape[0]==1:
+                        UP_x, DOWN_x = cells_coords[0,0], cells_coords[0,1]
+                        stat = data[i, UP_x:DOWN_x, :]
+                        temp_manual = data[i+1, UP_x:DOWN_x, :]
                     else:
-                        if cells_coords.shape[0]==1:
-                            UP_x, DOWN_x = cells_coords[0,0], cells_coords[0,1]
-                            stat = data[i, UP_x:DOWN_x, :]
-                            temp_manual = data[i+1, UP_x:DOWN_x, :]
-                        else:
-                            stat = data[i,np.r_[tuple(np.r_[start:end] for start, end in cells_coords)],:]
-                            temp_manual = data[i+1,np.r_[tuple(np.r_[start:end] for start, end in cells_coords)],:]
-                        # MANUAL
-                        temp_cell_patch_shift = get_cell_patch_shift(stat,temp_manual)
-                        inv_temp_cell_patch_shift = get_cell_patch_shift(temp_manual,stat)
-                        error_cell = abs(temp_cell_patch_shift + inv_temp_cell_patch_shift)
-                        cell_warps.append((error_cell, temp_cell_patch_shift))
-            except Exception as e:
+                        stat = data[i,np.r_[tuple(np.r_[start:end] for start, end in cells_coords)],:]
+                        temp_manual = data[i+1,np.r_[tuple(np.r_[start:end] for start, end in cells_coords)],:]
+                    # MANUAL
+                    temp_cell_patch_shift = get_cell_patch_shift(stat,temp_manual)
+                    inv_temp_cell_patch_shift = get_cell_patch_shift(temp_manual,stat)
+                    error_cell = abs(temp_cell_patch_shift + inv_temp_cell_patch_shift)
+                    cell_warps.append((error_cell, temp_cell_patch_shift))
+            else:
                 cell_warps = [(float('inf'), 0.0)]
-            # enface_shape = data[:,0,:].shape[1]
-            enface_wraps = []
-            if len(enface_extraction_rows)>0:
-                for enf_idx in range(len(enface_extraction_rows)):
-                    try:
-                        if MODEL_X_TRANSLATION is not None:
-                            bottom_row = max(0, enface_extraction_rows[enf_idx]-32)
-                            stat = data[i,bottom_row:enface_extraction_rows[enf_idx]+32]
-                            temp_manual = data[i+1,bottom_row:enface_extraction_rows[enf_idx]+32]
-                            temp_enface_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, stat, temp_manual, DEVICE = 'cpu'))[0]
-                            inv_temp_enface_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, temp_manual, stat ,DEVICE = 'cpu'))[0]
-                            error_enface = abs(temp_enface_shift + inv_temp_enface_shift)
-                            enface_wraps.append((error_enface, temp_enface_shift))
-                        else:
-                            stat = data[i, enface_extraction_rows[enf_idx]]
-                            temp_manual = data[i+1, enface_extraction_rows[enf_idx]]
-                            temp_enface_shift = get_line_shift(stat, temp_manual)
-                            inv_temp_enface_shift = get_line_shift(temp_manual, stat)
-                            error_enface = abs(temp_enface_shift + inv_temp_enface_shift)
-                            enface_wraps.append((error_enface, temp_enface_shift))
-                    except Exception as e:
-                        enface_wraps = [(float('inf'), 0.0)]
-            all_warps = [*cell_warps,*enface_wraps]
-            all_warps = sorted(all_warps, key=lambda x: x[0])  # Sort by error
-            # best_warp = check_multiple_warps(data[i], data[i+1], all_warps)
-            temp_tform_manual = AffineTransform(translation=(all_warps[0][1],0))
-            # temp_tform_manual = AffineTransform(translation=(-cell_warps,0))
-            transforms_all[i+1] = np.dot(transforms_all[i+1],temp_tform_manual)
         except Exception as e:
-            temp_tform_manual = AffineTransform(translation=(0,0))
-            transforms_all[i+1] = np.dot(transforms_all[i+1],temp_tform_manual)
+            cell_warps = [(float('inf'), 0.0)]
+        # enface_shape = data[:,0,:].shape[1]
+        enface_wraps = []
+        if len(enface_extraction_rows)>0:
+            for enf_idx in range(len(enface_extraction_rows)):
+                try:
+                    if MODEL_X_TRANSLATION is not None:
+                        bottom_row = max(0, enface_extraction_rows[enf_idx]-32)
+                        stat = data[i,bottom_row:enface_extraction_rows[enf_idx]+32]
+                        temp_manual = data[i+1,bottom_row:enface_extraction_rows[enf_idx]+32]
+                        temp_enface_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, stat, temp_manual, DEVICE = DEVICE))[0]
+                        inv_temp_enface_shift = np.squeeze(infer_x_translation(MODEL_X_TRANSLATION, temp_manual, stat ,DEVICE = DEVICE))[0]
+                        error_enface = abs(temp_enface_shift + inv_temp_enface_shift)
+                        enface_wraps.append((error_enface, temp_enface_shift))
+                    else:
+                        stat = data[i, enface_extraction_rows[enf_idx]]
+                        temp_manual = data[i+1, enface_extraction_rows[enf_idx]]
+                        temp_enface_shift = get_line_shift(stat, temp_manual)
+                        inv_temp_enface_shift = get_line_shift(temp_manual, stat)
+                        error_enface = abs(temp_enface_shift + inv_temp_enface_shift)
+                        enface_wraps.append((error_enface, temp_enface_shift))
+                except Exception as e:
+                    enface_wraps = [(float('inf'), 0.0)]
+        all_warps = [*cell_warps,*enface_wraps]
+        all_warps = sorted(all_warps, key=lambda x: x[0])  # Sort by error
+        # best_warp = check_multiple_warps(data[i], data[i+1], all_warps)
+        temp_tform_manual = AffineTransform(translation=(all_warps[0][1],0))
+        # temp_tform_manual = AffineTransform(translation=(-cell_warps,0))
+        transforms_all[i+1] = np.dot(transforms_all[i+1],temp_tform_manual)
+        # except Exception as e:
+        #     temp_tform_manual = AffineTransform(translation=(0,0))
+        #     transforms_all[i+1] = np.dot(transforms_all[i+1],temp_tform_manual)
+        # with open(f'debug.txt', 'a') as f:
+        #     end_time = st_time - time.time()
+        #     f.write(f'X motion\n')
+        #     f.write(f'Ith: {i}, Time taken: {end_time:.2f} seconds\n')
     return transforms_all
 
 ## Misc Functions
@@ -358,7 +384,7 @@ def infer_x_translation(model_obj, static_np, moving_np, DEVICE):
 
     # Concat and infer
     with torch.no_grad():
-        input_pair = torch.cat([static_np, moving_np], dim=1).double()  # shape: (1, 2, H, W)
+        input_pair = torch.cat([static_np, moving_np], dim=1).double().to(DEVICE)  # shape: (1, 2, H, W)
         moved_img, pred_translation = model_obj(input_pair)
         # warped = warper(moving.double(), pred_translation)
     # warped_np = warped.squeeze().numpy()
