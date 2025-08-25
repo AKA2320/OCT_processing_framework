@@ -33,23 +33,37 @@ import sys
 #     imgs_from_folder = imgs_from_folder.astype(np.float32)
 #     return imgs_from_folder
 
+# def ncc1d(array1, array2):
+#     correlation = np.correlate(array1, array2, mode='valid')
+#     array1_norm = np.linalg.norm(array1)
+#     array2_norm = np.linalg.norm(array2)
+#     if array1_norm == 0 or array2_norm == 0:
+#         return np.array([0.0])
+#     normalized_correlation = correlation / (array1_norm * array2_norm)
+#     return normalized_correlation
+
+# def ncc(array1, array2):
+#     correlation = correlate2d(array1, array2, mode='valid')
+#     array1_norm = np.linalg.norm(array1)
+#     array2_norm = np.linalg.norm(array2)
+#     if array1_norm == 0 or array2_norm == 0:
+#         return np.array([0.0])
+#     normalized_correlation = correlation / (array1_norm * array2_norm)
+#     return normalized_correlation
+
 def ncc1d(array1, array2):
-    correlation = np.correlate(array1, array2, mode='valid')
-    array1_norm = np.linalg.norm(array1)
-    array2_norm = np.linalg.norm(array2)
-    if array1_norm == 0 or array2_norm == 0:
-        return np.zeros_like(correlation)
-    normalized_correlation = correlation / (array1_norm * array2_norm)
-    return normalized_correlation
+    a1 = array1.flatten()-array1.mean()
+    a2 = array2.flatten()-array2.mean()
+    numerator = np.dot(a1, a2)
+    denominator = np.linalg.norm(a1) * np.linalg.norm(a2)
+    return numerator / denominator if denominator != 0 else 0.0
 
 def ncc(array1, array2):
-    correlation = correlate2d(array1, array2, mode='valid')
-    array1_norm = np.linalg.norm(array1)
-    array2_norm = np.linalg.norm(array2)
-    if array1_norm == 0 or array2_norm == 0:
-        return np.zeros_like(correlation)
-    normalized_correlation = correlation / (array1_norm * array2_norm)
-    return normalized_correlation
+    a1 = array1.flatten()-array1.mean()
+    a2 = array2.flatten()-array2.mean()
+    numerator = np.dot(a1, a2)
+    denominator = np.linalg.norm(a1) * np.linalg.norm(a2)
+    return numerator / denominator if denominator != 0 else 0.0
 
 def min_max(data1, global_min=None, global_max=None):    
     min_val = np.min(data1) if global_min is None else global_min
