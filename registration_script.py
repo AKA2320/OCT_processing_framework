@@ -203,7 +203,7 @@ if __name__ == "__main__":
     elif ENABLE_MULTIPROC_SLURM:
         try:
             from dask_jobqueue import SLURMCluster
-            from dask.distributed import Client, progress
+            from dask.distributed import Client
             from dask import delayed, compute
         except:
             raise ImportError("Dask and dask_jobqueue modules are required for multiprocessing with SLURM") from e

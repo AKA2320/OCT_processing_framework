@@ -79,6 +79,19 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, use_
     cropped_original_data = crop_data(original_data,surface_crop_coords,cells_crop_coords,original_data.shape[1])
     del original_data
 
+    # Pre-registration save
+    if cropped_original_data.dtype != np.float64:
+        cropped_original_data = cropped_original_data.astype(np.float64)
+    os.makedirs(save_dirname,exist_ok=True)
+    if not save_dirname.endswith('/'):
+        save_dirname = save_dirname + '/'
+    hdf5_filename = f'{save_dirname}{scan_num}_unregistered.h5'
+    try:
+        with h5py.File(hdf5_filename, 'w') as hf:
+            hf.create_dataset('volume', data=cropped_original_data, compression='gzip',compression_opts=5)
+    except Exception as e:
+        raise e
+
     static_flat = np.argmax(np.sum(cropped_original_data[:,:,:],axis=(0,1)))
     test_detect_img = preprocess_img(cropped_original_data[:,:,static_flat])
     res_surface = MODEL_FEATURE_DETECT.predict(test_detect_img,iou = 0.5, save = False, verbose=False,classes=0, device='cpu',agnostic_nms = True, augment = True)
@@ -184,7 +197,7 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, use_
     os.makedirs(save_dirname,exist_ok=True)
     if not save_dirname.endswith('/'):
         save_dirname = save_dirname + '/'
-    hdf5_filename = f'{save_dirname}{scan_num}.h5'
+    hdf5_filename = f'{save_dirname}{scan_num}_registered.h5'
     try:
         with h5py.File(hdf5_filename, 'w') as hf:
             hf.create_dataset('volume', data=cropped_original_data, compression='gzip',compression_opts=5)
