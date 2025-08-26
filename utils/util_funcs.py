@@ -52,8 +52,8 @@ import sys
 #     return normalized_correlation
 
 def ncc1d(array1, array2):
-    a1 = array1.flatten()-array1.mean()
-    a2 = array2.flatten()-array2.mean()
+    a1 = array1-array1.mean()
+    a2 = array2-array2.mean()
     numerator = np.dot(a1, a2)
     denominator = np.linalg.norm(a1) * np.linalg.norm(a2)
     return numerator / denominator if denominator != 0 else 0.0
