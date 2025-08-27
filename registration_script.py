@@ -6,6 +6,7 @@ from skimage.transform import warp, AffineTransform
 from natsort import natsorted
 from tqdm import tqdm
 import h5py
+import shutil
 from ultralytics import YOLO
 from utils.reg_util_funcs import *
 from utils.util_funcs import *
@@ -17,21 +18,22 @@ with open('datapaths.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
 MODEL_FEATURE_DETECT = YOLO(config['PATHS']['MODEL_FEATURE_DETECT_PATH'])
-USE_MODEL_X = config['PATHS']['USE_MODEL_X']
 MODEL_X_TRANSLATION_PATH = config['PATHS']['MODEL_X_TRANSLATION_PATH']
-SURFACE_Y_PAD = 20
-SURFACE_X_PAD = 10
-CELLS_X_PAD = 5
 DATA_LOAD_DIR = config['PATHS']['DATA_LOAD_DIR']
 DATA_SAVE_DIR = config['PATHS']['DATA_SAVE_DIR']
-EXPECTED_SURFACES = config['PATHS']['EXPECTED_SURFACES']
-EXPECTED_CELLS = config['PATHS']['EXPECTED_CELLS']
-BATCH_FLAG = config['PATHS']['BATCH_FLAG']
-DISABLE_TQDM = config['PATHS']['DISABLE_TQDM']
-ENABLE_MULTIPROC_SLURM = config['PATHS']['ENABLE_MULTIPROC_SLURM']
+SURFACE_Y_PAD = config['VALUES']['SURFACE_Y_PAD']
+SURFACE_X_PAD = config['VALUES']['SURFACE_X_PAD'] 
+CELLS_X_PAD = config['VALUES']['CELLS_X_PAD'] 
+EXPECTED_SURFACES = config['VALUES']['EXPECTED_SURFACES']
+EXPECTED_CELLS = config['VALUES']['EXPECTED_CELLS']
+
+BATCH_FLAG = config['FLAGS']['BATCH_FLAG']
+DISABLE_TQDM = config['FLAGS']['DISABLE_TQDM']
+ENABLE_MULTIPROC_SLURM = config['FLAGS']['ENABLE_MULTIPROC_SLURM']
+USE_MODEL_LATERAL_TRANSLATION = config['FLAGS']['USE_MODEL_LATERAL_TRANSLATION']
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-if USE_MODEL_X:
+if USE_MODEL_LATERAL_TRANSLATION:
     try:
         DEVICE = DEVICE
         MODEL_X_TRANSLATION = torch.load(MODEL_X_TRANSLATION_PATH, map_location=DEVICE, weights_only=False)
@@ -44,7 +46,7 @@ if USE_MODEL_X:
 else:
     MODEL_X_TRANSLATION = None
 
-def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
+def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections ):
     global MODEL_FEATURE_DETECT
     global MODEL_X_TRANSLATION
     if data_type=='h5':
@@ -60,7 +62,14 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections, ):
     pbar.set_description(desc = f'Loading Model_FEATURE_DETECT for {scan_num}')
     static_flat = np.argmax(np.sum(original_data[:,:,:],axis=(0,1)))
     test_detect_img = preprocess_img(original_data[:,:,static_flat])
-    res_surface = MODEL_FEATURE_DETECT.predict(test_detect_img,iou = 0.5, save = save_detections, project = 'Detected Areas',name = scan_num, verbose=False,classes=[0,1], device='cpu',agnostic_nms = True, augment = True)
+    detections_save_dir = os.path.join(DATA_SAVE_DIR, 'detections')
+    if os.path.exists(os.path.join(detections_save_dir,scan_num)):
+        try:
+            shutil.rmtree(os.path.join(detections_save_dir,scan_num))
+        except OSError as e:
+            print(f"Error removing existing detection directory: {e}")
+    res_surface = MODEL_FEATURE_DETECT.predict(test_detect_img,iou = 0.5, save = save_detections, project = detections_save_dir,
+                                               name = scan_num, verbose=False,classes=[0,1], device='cpu',agnostic_nms = True, augment = True)
     surface_crop_coords = [i for i in res_surface[0].summary() if i['name']=='surface']
     cells_crop_coords = [i for i in res_surface[0].summary() if i['name']=='cells']
     surface_crop_coords = detect_areas(surface_crop_coords, pad_val = 20, img_shape = test_detect_img.shape[0], expected_num = EXPECTED_SURFACES)
@@ -193,7 +202,7 @@ if __name__ == "__main__":
     pbar = tqdm(scans, desc='Processing Scans',total = len(scans), ascii="░▖▘▝▗▚▞█", disable=DISABLE_TQDM)
     if not ENABLE_MULTIPROC_SLURM:
         disable_tqdm = DISABLE_TQDM
-        save_detections = False
+        save_detections = True
         for scan_num in pbar:
             pbar.set_description(desc = f'Processing {scan_num}')
             start = time.time()
