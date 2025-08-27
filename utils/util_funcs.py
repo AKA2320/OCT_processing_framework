@@ -12,45 +12,6 @@ from natsort import natsorted
 from scipy.signal import correlate2d
 import sys
 
-
-# def load_data(path_num,path_all = False):
-#     if path_all:
-#         path = path_all
-#     else:
-#         path = f'registered/{path_num}/'
-#     pic_paths = []
-#     for i in os.listdir(path):
-#         if i.endswith('.dcm') or  i.endswith('.tiff') or i.endswith('.PNG'):
-#             pic_paths.append(i)
-#     pic_paths = natsorted(pic_paths)
-
-#     temp_img = cv2.imread(path+pic_paths[0],cv2.IMREAD_UNCHANGED) 
-#     imgs_from_folder = np.zeros((len(pic_paths),temp_img.shape[0],temp_img.shape[1]))
-#     # imgs_from_folder = []
-#     for i,j in enumerate(pic_paths):
-#         aa = cv2.imread(path+j,cv2.IMREAD_UNCHANGED)
-#         imgs_from_folder[i] = aa.copy()
-#     imgs_from_folder = imgs_from_folder.astype(np.float32)
-#     return imgs_from_folder
-
-# def ncc1d(array1, array2):
-#     correlation = np.correlate(array1, array2, mode='valid')
-#     array1_norm = np.linalg.norm(array1)
-#     array2_norm = np.linalg.norm(array2)
-#     if array1_norm == 0 or array2_norm == 0:
-#         return np.array([0.0])
-#     normalized_correlation = correlation / (array1_norm * array2_norm)
-#     return normalized_correlation
-
-# def ncc(array1, array2):
-#     correlation = correlate2d(array1, array2, mode='valid')
-#     array1_norm = np.linalg.norm(array1)
-#     array2_norm = np.linalg.norm(array2)
-#     if array1_norm == 0 or array2_norm == 0:
-#         return np.array([0.0])
-#     normalized_correlation = correlation / (array1_norm * array2_norm)
-#     return normalized_correlation
-
 def ncc1d(array1, array2):
     a1 = array1-array1.mean()
     a2 = array2-array2.mean()

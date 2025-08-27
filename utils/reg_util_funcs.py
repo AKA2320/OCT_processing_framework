@@ -26,10 +26,6 @@ def mse_fun_tran_flat(shif, x, y , past_shift):
     y = warp_image_affine(y, [past_shift,0])
     warped_x_stat = warp_image_affine(x, [-shif[0],0])
     warped_y_mov = warp_image_affine(y, [shif[0],0])
-    # x = warp(x, AffineTransform(translation=(-past_shift,0)),order=1)
-    # y = warp(y, AffineTransform(translation=(past_shift,0)),order=1)
-    # warped_x_stat = warp(x, AffineTransform(translation=(-shif[0],0)),order=1)
-    # warped_y_mov = warp(y, AffineTransform(translation=(shif[0],0)),order=1)
     err = np.squeeze(1-ncc(warped_x_stat ,warped_y_mov))
     return float(err)
     
@@ -83,10 +79,6 @@ def mse_fun_tran_y(shif, x, y , past_shift):
     y = warp_image_affine(y, [0,past_shift])
     warped_x_stat = warp_image_affine(x, [0,-shif[0]])
     warped_y_mov = warp_image_affine(y, [0,shif[0]])
-    # x = warp(x, AffineTransform(translation=(0,-past_shift)),order=3)
-    # y = warp(y, AffineTransform(translation=(0,past_shift)),order=3)
-    # warped_x_stat = warp(x, AffineTransform(translation=(0,-shif[0])),order=3)
-    # warped_y_mov = warp(y, AffineTransform(translation=(0,shif[0])),order=3)
     err = np.squeeze(1-ncc(warped_x_stat ,warped_y_mov))
     return float(err)
 
@@ -142,24 +134,20 @@ def shift_func(shif, x, y , past_shift):
     warped_y_mov = scp.shift(y, shif[0],order=3,mode='nearest')
     return (1-ncc1d(warped_x_stat ,warped_y_mov))
 
-def ncc1d(array1, array2):
-    correlation = np.correlate(array1, array2, mode='valid')
-    array1_norm = np.linalg.norm(array1)
-    array2_norm = np.linalg.norm(array2)
-    if array1_norm == 0 or array2_norm == 0:
-        return np.zeros_like(correlation)
-    normalized_correlation = correlation / (array1_norm * array2_norm)
-    return normalized_correlation
+# def ncc1d(array1, array2):
+#     correlation = np.correlate(array1, array2, mode='valid')
+#     array1_norm = np.linalg.norm(array1)
+#     array2_norm = np.linalg.norm(array2)
+#     if array1_norm == 0 or array2_norm == 0:
+#         return np.zeros_like(correlation)
+#     normalized_correlation = correlation / (array1_norm * array2_norm)
+#     return normalized_correlation
 
 def mse_fun_tran_x(shif, x, y , past_shift):
     x = warp_image_affine(x, [-past_shift,0])
     y = warp_image_affine(y, [past_shift,0])
     warped_x_stat = warp_image_affine(x, [-shif[0],0])
     warped_y_mov = warp_image_affine(y, [shif[0],0])
-    # x = warp(x, AffineTransform(translation=(-past_shift,0)),order=3)
-    # y = warp(y, AffineTransform(translation=(past_shift,0)),order=3)
-    # warped_x_stat = warp(x, AffineTransform(translation=(-shif[0],0)),order=3)
-    # warped_y_mov = warp(y, AffineTransform(translation=(shif[0],0)),order=3)
     err = np.squeeze(1-ncc(warped_x_stat ,warped_y_mov))
     return float(err)
 
