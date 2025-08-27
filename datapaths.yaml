@@ -1,11 +1,20 @@
 PATHS:
-  DATA_LOAD_DIR: '/Users/akapatil/Documents/OCT/Bifocal registration/Hadiya_6_17_2025_1.50D_3mm/batch4'
+  DATA_LOAD_DIR: '/Users/akapatil/Documents/OCT/Bifocal registration/pic3_Healthy_8192/data'
   DATA_SAVE_DIR: 'output/'
   MODEL_FEATURE_DETECT_PATH: 'models/feature_detect_yolov12best.pt'
   MODEL_X_TRANSLATION_PATH: 'models/model_transmorph_LRNPOSEMBD_Large_onlyX_batch32_ncc_normalized_shiftrange3_dynamiccrop_onlyMSE.pt'
-  USE_MODEL_X: True
-  EXPECTED_SURFACES: 2
-  EXPECTED_CELLS: 2
-  BATCH_FLAG: True
-  DISABLE_TQDM: False
-  ENABLE_MULTIPROC_SLURM: False
+
+VALUES:
+  EXPECTED_SURFACES: 3 # Estimated Surface layers in scans
+  EXPECTED_CELLS: 3 # Estimated Cell layers in scans
+  SURFACE_Y_PAD: 20 # Pad values after crop
+  SURFACE_X_PAD: 10 # Pad values after crop
+  CELLS_X_PAD: 5 # Pad values after crop
+
+FLAGS:
+  BATCH_FLAG: False # If True, process all scans in DATA_LOAD_DIR
+  DISABLE_TQDM: False # If True, disable tqdm progress bar (default: False for multiprocessing and GUI)
+  ENABLE_MULTIPROC_SLURM: False # If True, enable multiprocessing with SLURM (only for CLI, not GUI)
+  USE_MODEL_LATERAL_TRANSLATION: True # If True, use Model for lateral translation
+
+
