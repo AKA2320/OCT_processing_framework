@@ -107,7 +107,6 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections ):
 
     # FLATTENING PART
     pbar.set_description(desc = f'Flattening {scan_num}.....')
-    static_flat = np.argmax(np.sum(cropped_original_data[:,surface_coords[0,0]:surface_coords[0,1],:],axis=(0,1)))
     top_surf = True
     if surface_coords.shape[0]>1:
         for _ in range(2):
@@ -134,6 +133,7 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections ):
 
     # X-MOTION PART
     pbar.set_description(desc = f'Correcting {scan_num} X-Motion.....')
+    static_flat = np.argmax(np.sum(cropped_original_data[:,surface_coords[0,0]:surface_coords[0,1],:],axis=(0,1)))
     test_detect_img = preprocess_img(cropped_original_data[:,:,static_flat])
     res_surface = MODEL_FEATURE_DETECT.predict(test_detect_img,iou = 0.5, save = False, verbose=False,classes = 0, device='cpu',agnostic_nms = True, augment = True)
     res_cells = MODEL_FEATURE_DETECT.predict(test_detect_img,iou = 0.5, save = False, verbose=False,classes = 1, device='cpu',agnostic_nms = True, augment = True)
@@ -150,7 +150,7 @@ def main(dirname, scan_num, pbar, data_type, disable_tqdm, save_detections ):
         static_y_motion = np.argmax(np.sum(cropped_original_data[:,surface_coords[0,0]:surface_coords[0,1],:],axis=(1,2)))    
         errs = []
         for i in range(cropped_original_data.shape[0]):
-            errs.append(ncc(cropped_original_data[static_y_motion,:,:],cropped_original_data[i,:,:])[0])
+            errs.append(ncc(cropped_original_data[static_y_motion,:,:],cropped_original_data[i,:,:]))
         errs = np.squeeze(errs)
         valid_args = np.squeeze(np.argwhere(errs>0.7))
         for i in range(surface_coords.shape[0]):
