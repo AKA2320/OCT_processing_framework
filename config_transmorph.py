@@ -1,5 +1,3 @@
-import torch
-import torch.nn.functional as F
 import ml_collections
 
 def get_2DTransMorph_config():
@@ -292,3 +290,31 @@ def get_2DTransMorphTiny_config():
     config.img_size = (256, 256)
     return config
 
+
+def get_2DTransMorphLrnLarge_config():
+    '''
+    TransMorph with Learnable Positional Embedding
+    '''
+    config = ml_collections.ConfigDict()
+    config.if_transskip = True
+    config.if_convskip = True
+    config.patch_size = 4
+    config.in_chans = 2
+    config.embed_dim = 128
+    config.depths = (2, 2, 12, 2)
+    config.num_heads = (4, 4, 8, 16)
+    config.window_size = (2, 13)
+    config.mlp_ratio = 4
+    config.pat_merg_rf = 4
+    config.qkv_bias = False
+    config.drop_rate = 0
+    config.drop_path_rate = 0.3
+    config.ape = True
+    config.spe = False
+    config.rpe = False
+    config.patch_norm = True
+    config.use_checkpoint = False
+    config.out_indices = (0, 1, 2, 3)
+    config.reg_head_chan = 16
+    config.img_size = (64, 416)
+    return config
