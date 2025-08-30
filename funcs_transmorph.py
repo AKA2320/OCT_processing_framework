@@ -855,6 +855,7 @@ CONFIGS = {
     'TransMorph-Large': get_2DTransMorphLarge_config(),
     'TransMorph-Small': get_2DTransMorphSmall_config(),
     'TransMorph-Tiny': get_2DTransMorphTiny_config(),
+    'TransMorph-Lrn-Large': get_2DTransMorphLrnLarge_config()
 }
 
 
@@ -900,17 +901,17 @@ class NCCLoss(nn.Module):
 
 
 
-def shift_crop_image(stat, mov , shifts):
-    stat = warp(stat, AFT(translation = shifts),order = 3)
-    mov = warp(mov, AFT(translation = np.negative(shifts)),order = 3)
-    x_shift_crop = int(np.floor(abs(shifts[0])))
-    y_shift_crop = int(np.floor(abs(shifts[1])))
+# def shift_crop_image(stat, mov , shifts):
+#     stat = warp(stat, AFT(translation = shifts),order = 3)
+#     mov = warp(mov, AFT(translation = np.negative(shifts)),order = 3)
+#     x_shift_crop = int(np.floor(abs(shifts[0])))
+#     y_shift_crop = int(np.floor(abs(shifts[1])))
 
-    y_slice = slice(y_shift_crop, -y_shift_crop if y_shift_crop != 0 else None)
-    x_slice = slice(x_shift_crop, -x_shift_crop if x_shift_crop != 0 else None)
-    temp_stat = stat[y_slice, x_slice]
-    temp_mov = mov[y_slice, x_slice]
-    return temp_stat, temp_mov
+#     y_slice = slice(y_shift_crop, -y_shift_crop if y_shift_crop != 0 else None)
+#     x_slice = slice(x_shift_crop, -x_shift_crop if x_shift_crop != 0 else None)
+#     temp_stat = stat[y_slice, x_slice]
+#     temp_mov = mov[y_slice, x_slice]
+#     return temp_stat, temp_mov
 
 
 class BrightestCenterSquareCrop:
@@ -959,6 +960,47 @@ class ResizeToMultiple:
 
 
 
+# class imagepairdataset(Dataset):
+#     def __init__(self, root_dir, transform=None):
+#         self.root_dir = root_dir
+#         self.filenames = [f for f in os.listdir(root_dir) if f.endswith('.PNG')]
+#         self.transform = transform
+
+#     def __len__(self):
+#         return len(self.filenames)
+
+#     def __getitem__(self, idx):
+#         filepath = os.path.join(self.root_dir, self.filenames[idx])
+#         image = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)
+
+#         if np.random.randint(0,10)>7:
+#             shift_vals = np.random.randint(-8,8,size=2)
+#             static, moving = shift_crop_image(image, image, shift_vals)
+#         else:
+#             shift_vals = np.random.uniform(-5,5,size=2)
+#             static, moving = shift_crop_image(image, image, shift_vals)
+#         # static = torch.from_numpy(static)
+#         # moving = torch.from_numpy(moving)
+#         if self.transform:
+#             static, moving = self.transform(static), self.transform(moving)
+
+#         return static, moving, shift_vals*2  # (moving, fixed)
+
+
+
+### MODIFIED
+def shift_crop_image(stat, mov , shifts):
+    # stat = warp(stat, AffineTransform(translation = shifts),order = 3)
+    mov = warp(mov, AFT(translation = shifts),order = 3)
+    x_shift_crop = int(np.floor(abs(shifts[0])))
+    y_shift_crop = int(np.floor(abs(shifts[1])))
+
+    y_slice = slice(y_shift_crop, -y_shift_crop if y_shift_crop != 0 else None)
+    x_slice = slice(x_shift_crop, -x_shift_crop if x_shift_crop != 0 else None)
+    temp_stat = stat[y_slice, x_slice]
+    temp_mov = mov[y_slice, x_slice]
+    return temp_stat, temp_mov
+
 class imagepairdataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
@@ -972,16 +1014,16 @@ class imagepairdataset(Dataset):
         filepath = os.path.join(self.root_dir, self.filenames[idx])
         image = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)
 
-        if np.random.randint(0,10)>7:
-            shift_vals = np.random.randint(-8,8,size=2)
+        if np.random.randint(0,10)>5:
+            shift_vals = np.array([np.random.uniform(-8,8),0])
             static, moving = shift_crop_image(image, image, shift_vals)
         else:
-            shift_vals = np.random.uniform(-5,5,size=2)
+            shift_vals = np.array([np.random.uniform(-2,2),0])
             static, moving = shift_crop_image(image, image, shift_vals)
         # static = torch.from_numpy(static)
         # moving = torch.from_numpy(moving)
         if self.transform:
             static, moving = self.transform(static), self.transform(moving)
 
-        return static, moving, shift_vals*2  # (moving, fixed)
+        return static, moving, shift_vals  # (moving, fixed)
 
