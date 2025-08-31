@@ -2,6 +2,7 @@ import multiprocessing
 multiprocessing.freeze_support()
 import sys
 import os
+# import logging
 from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import (
     QApplication,
@@ -18,54 +19,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import QThread, Signal
 import napari
-from utils.util_funcs import GUI_load_h5, GUI_load_dcm
-from GUI_scripts.gui_registration_script import gui_input
+from utils.load_data_funcs import GUI_load_h5, GUI_load_dcm
+from registration_scripts.gui_reg_process_wrapper import run_registration_process
 
-# =============================================================================
-# Process Target Function & Stdout Redirector
-# =============================================================================
-class ProcessStdout:
-    """A helper class to redirect stdout of a process to a multiprocessing.Queue."""
-    def __init__(self, queue):
-        self.queue = queue
-
-    def write(self, text):
-        self.queue.put(text)
-
-    def flush(self):
-        pass
-
-def run_registration_process(output_queue, cancel_event, *args):
-    """
-    This function is the target for the multiprocessing.Process.
-    It sets up stdout redirection and calls the main processing function.
-    """
-    sys.stdout = ProcessStdout(output_queue)
-    sys.stderr = ProcessStdout(output_queue)
-    
-    # Unpack arguments for gui_input
-    (dirname, use_model_x, disable_tqdm, save_dirname, expected_cells, 
-     expected_surfaces, batch_data_flag) = args
-     
-    try:
-        # The cancellation_flag is a simple lambda that checks the event state
-        gui_input(
-            dirname=dirname,
-            use_model_x=use_model_x,
-            disable_tqdm=disable_tqdm,
-            save_dirname=save_dirname,
-            expected_cells=expected_cells,
-            expected_surfaces=expected_surfaces,
-            batch_data_flag=batch_data_flag,
-            cancellation_flag=lambda: cancel_event.is_set()
-        )
-    except Exception as e:
-        # Ensure exceptions in the child process are reported to the GUI
-        output_queue.put(f"\n--- A CRITICAL ERROR OCCURRED IN THE PROCESS ---\n")
-        output_queue.put(str(e))
-    finally:
-        # Signal that the process is done
-        output_queue.put("PROCESS_FINISHED")
 
 # =============================================================================
 # Worker Threads (QThread is now a manager for the process)
@@ -92,7 +48,6 @@ class LoadThread(QThread):
             else:
                 self.error_occurred.emit("The selected path is not a valid directory or HDF5 file.")
                 return
-
             if data is not None:
                 self.update_status.emit(f"Data loaded successfully (Shape: {data.shape}).")
                 self.data_ready.emit(data)
@@ -125,8 +80,8 @@ class RegistrationThread(QThread):
             self.cancel_event = multiprocessing.Event()
             
             self.process = multiprocessing.Process(
-                target=run_registration_process,
-                args=(output_queue, self.cancel_event) + self.args
+                target = run_registration_process,
+                args = (output_queue, self.cancel_event) + self.args
             )
             self.process.start()
 
@@ -274,12 +229,12 @@ class RegistrationTab(QWidget):
         self.expected_surfaces_input.setValidator(QIntValidator())
         self.expected_surfaces_input.setStyleSheet("background-color: white; color: black;")
         layout.addWidget(self.expected_surfaces_input)
-        self.use_model_x_checkbox = QCheckBox("USE_MODEL_X")
-        self.use_model_x_checkbox.setChecked(True)
-        layout.addWidget(self.use_model_x_checkbox)
-        self.disable_tqdm_checkbox = QCheckBox("DISABLE_TQDM")
-        self.disable_tqdm_checkbox.setChecked(True)
-        layout.addWidget(self.disable_tqdm_checkbox)
+        self.USE_MODEL_LATERAL_TRANSLATION_checkbox = QCheckBox("Use ML Model for Lateral(X) Motion Correction")
+        self.USE_MODEL_LATERAL_TRANSLATION_checkbox.setChecked(True)
+        layout.addWidget(self.USE_MODEL_LATERAL_TRANSLATION_checkbox)
+        self.save_detections_checkbox = QCheckBox("Save Feature Detections")
+        self.save_detections_checkbox.setChecked(True)
+        layout.addWidget(self.save_detections_checkbox)
         self.register_btn = QPushButton("Register Data")
         self.register_btn.setEnabled(False)
         self.register_btn.setStyleSheet("font-weight: bold; padding: 5px;")
@@ -342,8 +297,8 @@ class RegistrationTab(QWidget):
         
         args = (
             self.selected_register_path,
-            self.use_model_x_checkbox.isChecked(),
-            self.disable_tqdm_checkbox.isChecked(),
+            self.USE_MODEL_LATERAL_TRANSLATION_checkbox.isChecked(),
+            self.save_detections_checkbox.isChecked(),
             self.selected_save_path,
             expected_cells,
             expected_surfaces,
