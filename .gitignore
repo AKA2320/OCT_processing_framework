@@ -203,3 +203,5 @@ extract_registered_enface.py
 output/
 .github/workflows/macos_build.yaml
 .github/workflows/windows_build.yaml
+debug.txt
+test_GUI_scripts/

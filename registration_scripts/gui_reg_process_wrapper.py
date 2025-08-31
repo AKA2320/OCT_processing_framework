@@ -2,7 +2,7 @@ import sys
 import multiprocessing
 multiprocessing.freeze_support()
 import logging
-from test_registration_script import start_reg_gui
+from registration_script import start_reg_gui
 
 # =============================================================================
 # Process Target Function & Stdout Redirector
