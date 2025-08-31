@@ -16,5 +16,4 @@ FLAGS:
   DISABLE_TQDM: False # If True, disable tqdm progress bar (default: False for multiprocessing and GUI)
   ENABLE_MULTIPROC_SLURM: False # If True, enable multiprocessing with SLURM (only for CLI, not GUI)
   USE_MODEL_LATERAL_TRANSLATION: True # If True, use Model for lateral translation
-
-
+  SAVE_DETECTIONS: True # If True, feature detection results are saved in output directory
