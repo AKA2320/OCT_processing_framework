@@ -13,11 +13,11 @@ site_path = [i for i in sys.path if "site-packages" in i][0]
 napari_path = os.path.join(site_path, "napari")
 vispy_path = os.path.join(site_path, "vispy")
 
-config_py_path = 'config_transmorph.py'
-funcs_transmorph_py_path = 'funcs_transmorph.py'
-datapaths_yaml_path = 'datapaths.yaml'
-models_path = 'models'
-pyside_gui_py_path = 'pyside_gui.py'
+config_py_path = '../config_transmorph.py'
+funcs_transmorph_py_path = '../funcs_transmorph.py'
+datapaths_yaml_path = '../datapaths.yaml'
+models_path = '../models'
+pyside_gui_py_path = '../pyside_gui.py'
 icon_path = 'Tankam-Lab-Logo-2.png'
 
 a = Analysis(
@@ -34,7 +34,7 @@ a = Analysis(
         (icon_path, '.')
     ],
     hiddenimports=[
-        'GUI_scripts', 'utils', 'pydicom', 'skimage', 'scipy', 'napari',
+        'registration_scripts', 'utils', 'pydicom', 'skimage', 'scipy', 'napari',
         'napari.view_layers', 'torch', 'PySide6', 'ultralytics', 'h5py',
         'natsort', 'torchvision', 'tqdm', 'timm', 'ml_collections'
     ],
