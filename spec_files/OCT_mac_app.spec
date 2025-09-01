@@ -16,7 +16,7 @@ vispy_path = os.path.join(site_path, "vispy")
 config_py_path = '../config_transmorph.py'
 funcs_transmorph_py_path = '../funcs_transmorph.py'
 datapaths_yaml_path = '../datapaths.yaml'
-models_path = '../models'
+models_yolo_path = '../models/feature_detect_yolov12best.pt'
 pyside_gui_py_path = '../pyside_gui.py'
 icon_path = 'Tankam-Lab-Logo-2.png'
 
@@ -25,7 +25,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        (models_path, 'models'),
+        (models_yolo_path, 'models/'),
         (config_py_path, '.'),
         (funcs_transmorph_py_path, '.'),
         (datapaths_yaml_path, '.'),
