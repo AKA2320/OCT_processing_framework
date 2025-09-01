@@ -20,7 +20,18 @@ import sys
 # import torch
 # import time
 import logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout )
+# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout )
+class ProcessStdout:
+    """A helper class to redirect stdout of a process to a multiprocessing.Queue."""
+    def __init__(self, queue):
+        self.queue = queue
+
+    def write(self, text):
+        self.queue.put(text)
+
+    def flush(self):
+        pass
+
 
 class RegistrationWorker:
     def __init__(self, config, models, scan_num, pbar, DATA_LOAD_DIR,
@@ -149,7 +160,6 @@ class RegistrationWorker:
         self.pbar.set_description(desc = f'Flattening {self.scan_num} surfaces.....')
         if self.DISABLE_TQDM:
             logging.info("Starting Flattening for data")
-            print("Starting Flattening for data")
         cropped_data = self._flatten_data(cropped_data)
         
         # Correct Y motion

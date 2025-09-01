@@ -16,22 +16,34 @@ import yaml
 import torch
 import time
 import logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+class ProcessStdout:
+    """A helper class to redirect stdout of a process to a multiprocessing.Queue."""
+    def __init__(self, queue):
+        self.queue = queue
+
+    def write(self, text):
+        self.queue.put(text)
+
+    def flush(self):
+        pass
 
 class RegistrationMaster:
     def __init__(self, config_path='datapaths.yaml', is_gui=False, ENABLE_MULTIPROC_SLURM = False,
                  DISABLE_TQDM = True, EXPECTED_SURFACES = 2, EXPECTED_CELLS = 2, BATCH_FLAG=False,
-                 DATA_LOAD_DIR = None, DATA_SAVE_DIR = None, USE_MODEL_LATERAL_TRANSLATION = False, 
-                 SAVE_DETECTIONS = False,):
+                 DATA_LOAD_DIR = None, DATA_SAVE_DIR = 'output/', USE_MODEL_LATERAL_TRANSLATION = False, 
+                 SAVE_DETECTIONS = False, OUTPUT_QUEUE = None):
         """Initialize the registration pipeline with configuration and models"""
         self.is_gui_flag = is_gui
+        self.output_queue = OUTPUT_QUEUE
         if not self.is_gui_flag:
             self.config = self._load_config(config_path)
+            logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
         else:
             self.config = self._set_config(config_path, DATA_LOAD_DIR, DATA_SAVE_DIR,
                                             EXPECTED_SURFACES, EXPECTED_CELLS, BATCH_FLAG, DISABLE_TQDM,
                                             ENABLE_MULTIPROC_SLURM, USE_MODEL_LATERAL_TRANSLATION, SAVE_DETECTIONS)
+            logging.basicConfig(level=logging.INFO, format='%(message)s', stream = ProcessStdout(self.output_queue))
         self.DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.BATCH_FLAG = self.config['FLAGS']['BATCH_FLAG']
         self.DATA_LOAD_DIR = self.config['PATHS']['DATA_LOAD_DIR']
@@ -42,10 +54,10 @@ class RegistrationMaster:
         self.USE_MODEL_LATERAL_TRANSLATION = self.config['FLAGS']['USE_MODEL_LATERAL_TRANSLATION']
         self.ENABLE_MULTIPROC_SLURM = self.config['FLAGS']['ENABLE_MULTIPROC_SLURM']
         self.save_detections = self.config['FLAGS']['SAVE_DETECTIONS']
-        self.models = self._load_models()
         self.EXPECTED_SURFACES = self.config['VALUES']['EXPECTED_SURFACES']
         self.EXPECTED_CELLS = self.config['VALUES']['EXPECTED_CELLS']
         self.data_type = None
+        self.models = self._load_models()
 
     def _load_config(self, config_path):
         """Load configuration from YAML file"""
@@ -89,22 +101,30 @@ class RegistrationMaster:
         models = {}
         try:
             models['feature_yolo'] = YOLO(self.MODEL_FEATURE_DETECT_PATH)
-            logging.info("YOLO Model Loaded Succesfully.")   
+            logging.info("YOLO Model Loaded Succesfully.")
+            # if self.is_gui_flag:
+            #     self.output_queue.put("YOLO Model Loaded Succesfully.\n")
         except Exception as e:
             logging.error(f"Error loading YOLO model: {e}", exc_info=True)
             sys.exit("Failed to load YOLO model. Exiting.")
         if self.USE_MODEL_LATERAL_TRANSLATION:
             try:
                 if not os.path.exists(self.MODEL_X_TRANSLATION_PATH):
-                    logging.info("Model X not present in models/ \n Downloading the model.")       
+                    logging.info("Model X not present in models.....Downloading the model.")
+                    # if self.is_gui_flag:
+                    #     self.output_queue.put("Model X not present in models/ \n Downloading the model.\n")     
                     download_model(model_x_translation_url,self.MODEL_X_TRANSLATION_PATH)
-                    logging.info("Model Downloaded Succesfully.")      
+                    logging.info("Model Downloaded Succesfully.")
                 MODEL_X_TRANSLATION = torch.load(self.MODEL_X_TRANSLATION_PATH, map_location=self.DEVICE, weights_only=False)
                 MODEL_X_TRANSLATION.eval()
-                logging.info("Model X loaded successfully.")        
+                logging.info("Model X loaded successfully.")
+                # if self.is_gui_flag:
+                #     self.output_queue.put("Model X loaded successfully.\n")     
             except Exception as e:
                 logging.error(f"Error loading Model X: {e}", exc_info=True)
                 logging.info("Proceeding without Model X translation.")
+                # if self.is_gui_flag:
+                #     self.output_queue.put("Error loading Model X: {e} \nProceeding without Model X translation.")     
                 MODEL_X_TRANSLATION = None
         else:
             MODEL_X_TRANSLATION = None
@@ -202,12 +222,12 @@ def start_reg_cli():
     registration_pipeline.spawn_worker_and_run_pipeline()
 
 def start_reg_gui(DATA_LOAD_DIR, DATA_SAVE_DIR, EXPECTED_SURFACES, EXPECTED_CELLS, BATCH_FLAG,
-                 USE_MODEL_LATERAL_TRANSLATION, SAVE_DETECTIONS):
+                 USE_MODEL_LATERAL_TRANSLATION, SAVE_DETECTIONS, OUTPUT_QUEUE):
     registration_pipeline = RegistrationMaster(config_path = 'datapaths.yaml', is_gui = True, DATA_LOAD_DIR = DATA_LOAD_DIR,
                             DATA_SAVE_DIR = DATA_SAVE_DIR, EXPECTED_SURFACES = EXPECTED_SURFACES, 
                             EXPECTED_CELLS = EXPECTED_CELLS, BATCH_FLAG = BATCH_FLAG, DISABLE_TQDM = True,
                             ENABLE_MULTIPROC_SLURM = False, USE_MODEL_LATERAL_TRANSLATION = USE_MODEL_LATERAL_TRANSLATION,
-                            SAVE_DETECTIONS = SAVE_DETECTIONS) 
+                            SAVE_DETECTIONS = SAVE_DETECTIONS, OUTPUT_QUEUE = OUTPUT_QUEUE) 
     registration_pipeline.spawn_worker_and_run_pipeline()
 
 if __name__ == "__main__":

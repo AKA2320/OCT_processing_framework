@@ -1,22 +1,7 @@
-import sys
 import multiprocessing
 multiprocessing.freeze_support()
-import logging
 from registration_script import start_reg_gui
 
-# =============================================================================
-# Process Target Function & Stdout Redirector
-# =============================================================================
-class ProcessStdout:
-    """A helper class to redirect stdout of a process to a multiprocessing.Queue."""
-    def __init__(self, queue):
-        self.queue = queue
-
-    def write(self, text):
-        self.queue.put(text)
-
-    def flush(self):
-        pass
 
 def run_registration_process(output_queue, cancel_event, *args):
     """
@@ -24,15 +9,6 @@ def run_registration_process(output_queue, cancel_event, *args):
     It sets up stdout redirection and calls the main processing function.
     
     """
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(message)s',  # A simple format without timestamps or log levels
-        stream=sys.stdout  # Direct logging output to the redirected stderr
-    )
-    
-    sys.stdout = ProcessStdout(output_queue)
-    sys.stderr = ProcessStdout(output_queue)
-
     
     # Unpack arguments for gui_input
     (DATA_LOAD_DIR, USE_MODEL_LATERAL_TRANSLATION, SAVE_DETECTIONS, DATA_SAVE_DIR, expected_cells, 
@@ -40,7 +16,7 @@ def run_registration_process(output_queue, cancel_event, *args):
     
     args_dict = {'DATA_LOAD_DIR':DATA_LOAD_DIR, 'USE_MODEL_LATERAL_TRANSLATION': USE_MODEL_LATERAL_TRANSLATION,
                 'DATA_SAVE_DIR':DATA_SAVE_DIR, 'EXPECTED_CELLS':expected_cells, 'EXPECTED_SURFACES':expected_surfaces,
-                'BATCH_FLAG':batch_data_flag, 'SAVE_DETECTIONS': SAVE_DETECTIONS}
+                'BATCH_FLAG':batch_data_flag, 'SAVE_DETECTIONS': SAVE_DETECTIONS, 'OUTPUT_QUEUE': output_queue}
     try:
         gui_start_process = multiprocessing.Process(target = start_reg_gui, kwargs=args_dict)
         gui_start_process.start()
