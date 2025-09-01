@@ -4,6 +4,7 @@ import numpy as np
 import os
 # from skimage.transform import warp, AffineTransform
 import cv2
+import requests
 # import h5py
 # from natsort import natsorted
 # from scipy.fftpack import fft2, fftshift, ifft2, fft, ifft
@@ -57,3 +58,14 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
+def download_model(url, local_filename):
+    """ Download the model if absent """
+    try:
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(local_filename, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+    except Exception as e:
+        raise ValueError(f"Model url not valid or failed model downloading {e}")
