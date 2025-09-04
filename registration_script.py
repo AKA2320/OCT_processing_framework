@@ -163,28 +163,28 @@ class RegistrationMaster:
 
         elif self.ENABLE_MULTIPROC_SLURM:
             self.DISABLE_TQDM = True
-            pbar = tqdm(scans, desc='Processing Scans',total = len(scans), ascii="░▖▘▝▗▚▞█", disable = self.DISABLE_TQDM)
-            self._dask_slurm_spawner(pbar, scans)
+            # pbar = tqdm(scans, desc='Processing Scans',total = len(scans), ascii="░▖▘▝▗▚▞█", disable = self.DISABLE_TQDM)
+            self._dask_slurm_spawner(scans)
 
     def init_dask_worker(self):
         self.MODEL_FEATURE_DETECT = self.models['feature_yolo']
         self.MODEL_X_TRANSLATION = self.models['x_translation']
 
-    def _dask_slurm_spawner(self, pbar, scans):
+    def _dask_slurm_spawner(self,scans):
         try:
             from dask_jobqueue import SLURMCluster
-            from dask.distributed import Client, wait
-            from dask import delayed
+            from dask.distributed import Client
+            from dask import delayed, compute
         except ImportError as e:
             raise ImportError("Dask and dask_jobqueue modules are required for multiprocessing with SLURM") from e
-        multiproc_args_list = [(scan_num, pbar) for scan_num in scans]
+        multiproc_args_list = [(scan_num) for scan_num in scans]
         logging.info("Setting up Dask SLURM cluster...")
         cluster = SLURMCluster(
             queue='general',
             account='ACC_NUMBER',
-            cores=1, 
+            cores=3, 
             processes=1,
-            memory='10GB',
+            memory='20GB',
             walltime='03:00:00',
             job_extra_directives=[
                 "--cpus-per-task=1",
@@ -201,8 +201,7 @@ class RegistrationMaster:
         client.run(self.init_dask_worker)
         tasks = [delayed(self._launch_process_wrapper)(*args) for args in multiproc_args_list]
         logging.info("Submitting tasks to the cluster...")
-        results = client.compute(*tasks)
-        wait(results)
+        results = compute(*tasks)
         logging.info("Jobs DONE")
         # results = client.gather(results)
         try:
@@ -211,7 +210,8 @@ class RegistrationMaster:
         except:
             pass
     
-    def _launch_process_wrapper(self, scan_num, pbar):
+    def _launch_process_wrapper(self, scan_num):
+        pbar = tqdm([],total = 1,disable=True)
         scan_worker = RegistrationWorker(self.config, self.models, scan_num, pbar, self.DATA_LOAD_DIR, 
                                         self.data_type, self.save_detections, self.DEVICE, self.DISABLE_TQDM,
                                         self.EXPECTED_SURFACES, self.EXPECTED_CELLS)
