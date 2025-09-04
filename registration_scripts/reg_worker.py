@@ -115,12 +115,12 @@ class RegistrationWorker:
                 shutil.rmtree(os.path.join(detections_save_dir,self.scan_num))
             except OSError as e:
                 print(f"Error removing existing detection directory: {e}")
-        res_surface = self.MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.5, save=self.save_detections, max_det = self.EXPECTED_SURFACES,
+        res_surface_cells = self.MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.5, save=self.save_detections, max_det = self.EXPECTED_SURFACES + self.EXPECTED_CELLS,
                                                         project = detections_save_dir, name=self.scan_num, verbose=False,
                                                         classes=[0,1], device=self.DEVICE, agnostic_nms=True, augment=True)
         
-        surface_crop_coords = [i for i in res_surface[0].summary() if i['name']=='surface']
-        cells_crop_coords = [i for i in res_surface[0].summary() if i['name']=='cells']
+        surface_crop_coords = [i for i in res_surface_cells[0].summary() if i['name']=='surface']
+        cells_crop_coords = [i for i in res_surface_cells[0].summary() if i['name']=='cells']
         
         surface_crop_coords = detect_areas(surface_crop_coords, pad_val = self.SURFACE_Y_PAD,
                                            img_shape=test_detect_img.shape[0], expected_num=self.EXPECTED_SURFACES)
