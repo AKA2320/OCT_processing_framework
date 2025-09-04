@@ -97,7 +97,7 @@ class RegistrationMaster:
 
     def _load_models(self):
         """Load models based on configuration"""
-        model_x_translation_url = 'https://github.com/AKA2320/OCT_registration_framework/raw/refs/heads/main/models/model_transmorph_LRNPOSEMBD_Large_onlyX_batch32_ncc_normalized_shiftrange3_dynamiccrop_onlyMSE.pt'
+        model_x_translation_url = 'https://github.com/AKA2320/OCT_registration_framework/raw/refs/heads/main/models/transmorph_lateral_X_translation.pt'
         models = {}
         try:
             models['feature_yolo'] = YOLO(self.MODEL_FEATURE_DETECT_PATH)
@@ -182,12 +182,11 @@ class RegistrationMaster:
         cluster = SLURMCluster(
             queue='general',
             account='ACC_NUMBER',
-            cores=3, 
+            cores=2, 
             processes=1,
             memory='20GB',
             walltime='03:00:00',
             job_extra_directives=[
-                "--cpus-per-task=1",
                 "--nodes=1",
                 "--job-name=oct_reg",
                 "--output=my_job.out",
@@ -199,7 +198,7 @@ class RegistrationMaster:
         # Attach client
         client = Client(cluster)
         client.run(self.init_dask_worker)
-        tasks = [delayed(self._launch_process_wrapper)(*args) for args in multiproc_args_list]
+        tasks = [delayed(self._launch_process_wrapper)(args) for args in multiproc_args_list]
         logging.info("Submitting tasks to the cluster...")
         results = compute(*tasks)
         logging.info("Jobs DONE")
