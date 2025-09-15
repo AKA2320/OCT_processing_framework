@@ -1,14 +1,9 @@
-# import sys
-# import matplotlib.pylab as plt
 import numpy as np
 import os
 from skimage.transform import warp, AffineTransform
-# from natsort import natsorted
 from tqdm import tqdm
 import h5py
 import shutil
-# from ultralytics import YOLO
-# from utils.reg_util_funcs import *
 from utils.transmorph_helper_funcs import preprocess_img, detect_areas, crop_data
 from utils.load_data_funcs import load_data_dcm, load_h5_data
 from utils.flatten_correction_util_funcs import flatten_data
@@ -16,9 +11,6 @@ from utils.y_correction_util_funcs import y_motion_correcting
 from utils.x_correction_util_funcs import x_motion_coorection
 from utils.util_funcs import ncc
 import sys
-# import yaml
-# import torch
-# import time
 import logging
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout )
 class ProcessStdout:
@@ -179,7 +171,6 @@ class RegistrationWorker:
     def _flatten_data(self, data):
         """Flatten the data based on surface coordinates"""
         top_surf = True
-        
         if self.surface_coords.shape[0] > 1:
             for _ in range(2):
                 if top_surf:
@@ -191,7 +182,6 @@ class RegistrationWorker:
                 top_surf = False
         else:
             data = flatten_data(data, self.surface_coords, top_surf, self.partition_coord, self.DISABLE_TQDM, self.scan_num)
-            
         return data
 
     def _correct_y_motion(self, data):
@@ -214,14 +204,11 @@ class RegistrationWorker:
     def _correct_x_motion(self, data):
         """Correct X-axis motion in the data"""
         static_flat = np.argmax(np.sum(data[:,self.surface_coords[0,0]:self.surface_coords[0,1],:], axis=(0,1)))
-        # static_flat = np.argmax(np.sum(data[:,:,:], axis=(0,1)))
         test_detect_img = preprocess_img(data[:,:,static_flat])
-        
         res_surface = self.MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.5, save=False, verbose=False, max_det = self.EXPECTED_SURFACES,
                                                         classes=0, device=self.DEVICE, agnostic_nms=True, augment=True)
         res_cells = self.MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.5, save=False, verbose=False, max_det = self.EXPECTED_CELLS,
                                                         classes=1, device=self.DEVICE, agnostic_nms=True, augment=True)
-        
         surface_coords_for_x = detect_areas(res_surface[0].summary(), pad_val=self.SURFACE_X_PAD,
                                             img_shape=test_detect_img.shape[0], expected_num=self.EXPECTED_SURFACES)
         cells_coords_for_x = detect_areas(res_cells[0].summary(), pad_val=self.CELLS_X_PAD,
