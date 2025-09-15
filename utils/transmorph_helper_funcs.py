@@ -3,6 +3,7 @@ from torchvision import transforms
 import torch.nn.functional as F
 from collections import defaultdict
 import numpy as np
+import cv2
 from utils.util_funcs import min_max, merge_intervals
 
 
@@ -39,6 +40,8 @@ def preprocess_img(data):
     data = data.transpose(1,0)
     data = min_max(data)
     data = (data*255).astype(np.uint8)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(20, 20))
+    data = clahe.apply(data)
     data = np.dstack([[data]*3]).transpose(1,2,0)
     data = np.ascontiguousarray(data)
     return data
