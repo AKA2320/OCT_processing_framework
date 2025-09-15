@@ -209,8 +209,8 @@ class RegistrationMaster:
         except:
             pass
     
-    def _launch_process_wrapper(self, scan_num):
-        pbar = tqdm([],total = 1,disable=True)
+    def _launch_process_wrapper(self, scan_num, pbar = tqdm([],total = 1,disable=True)):
+        # pbar = tqdm([],total = 1,disable=True)
         scan_worker = RegistrationWorker(self.config, self.models, scan_num, pbar, self.DATA_LOAD_DIR, 
                                         self.data_type, self.save_detections, self.DEVICE, self.DISABLE_TQDM,
                                         self.EXPECTED_SURFACES, self.EXPECTED_CELLS)
