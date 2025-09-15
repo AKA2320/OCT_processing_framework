@@ -7,7 +7,7 @@ import numpy as np
 def load_h5_data(dirname, scan_num):
     if dirname.endswith(('.h5','.hdf5')):
         with h5py.File(dirname, 'r') as hf:
-            data = hf['volume'][:,100:-100,:]
+            data = hf['volume'][:,50:-50,:] # remove 50 pixels from top and bottom to avoid bottom refleaction artifacts
         return data
     else:
         if not dirname.endswith('/'):
@@ -15,7 +15,7 @@ def load_h5_data(dirname, scan_num):
         path = f'{dirname}{scan_num}/'
         pic_paths = [i for i in os.listdir(path) if i.endswith('.h5')]
         with h5py.File(path+pic_paths[0], 'r') as hf:
-            original_data = hf['volume'][:,100:-100,:]
+            original_data = hf['volume'][:,50:-50,:] # remove 50 pixels from top and bottom to avoid bottom refleaction artifacts
         return original_data
 
 def load_data_dcm(dirname, scan_num):
@@ -28,7 +28,7 @@ def load_data_dcm(dirname, scan_num):
         imgs_from_folder = np.zeros((len(pic_paths),*temp_img.shape))
         for i,j in enumerate(pic_paths):
             imgs_from_folder[i] = dcmread(os.path.join(dirname, j)).pixel_array
-        imgs_from_folder = imgs_from_folder[:,100:-100,:]
+        imgs_from_folder = imgs_from_folder[:,50:-50,:] # remove 50 pixels from top and bottom to avoid bottom refleaction artifacts
         return imgs_from_folder
     else:
         current_scan_path = os.path.join(dirname, scan_num)
@@ -38,7 +38,7 @@ def load_data_dcm(dirname, scan_num):
         imgs_from_folder = np.zeros((len(pic_paths),*temp_img.shape))
         for i,j in enumerate(pic_paths):
             imgs_from_folder[i] = dcmread(os.path.join(current_scan_path, j)).pixel_array
-        imgs_from_folder = imgs_from_folder[:,100:-100,:]
+        imgs_from_folder = imgs_from_folder[:,50:-50,:] # remove 50 pixels from top and bottom to avoid bottom refleaction artifacts
         return imgs_from_folder
     
 
