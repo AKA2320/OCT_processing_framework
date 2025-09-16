@@ -107,16 +107,22 @@ class RegistrationWorker:
                 shutil.rmtree(os.path.join(detections_save_dir,self.scan_num))
             except OSError as e:
                 print(f"Error removing existing detection directory: {e}")
-        res_surface_cells = self.MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.5, save=self.save_detections, max_det = self.EXPECTED_SURFACES + self.EXPECTED_CELLS,
-                                                        project = detections_save_dir, name=self.scan_num, verbose=False,
-                                                        classes=[0,1], device=self.DEVICE, agnostic_nms=True, augment=True)
+        res_surface_cells = self.MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.5, save=self.save_detections,
+                                                            max_det = self.EXPECTED_SURFACES + self.EXPECTED_CELLS + 5, # some extra detctions to save but not use
+                                                            project = detections_save_dir, name=self.scan_num, verbose=False,
+                                                            classes= 0, device=self.DEVICE, agnostic_nms=True, augment=True)
         
-        surface_crop_coords = [i for i in res_surface_cells[0].summary() if i['name']=='surface']
-        cells_crop_coords = [i for i in res_surface_cells[0].summary() if i['name']=='cells']
+        res_surface = self.MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.5, save=False, max_det = self.EXPECTED_SURFACES,
+                                                              verbose=False, classes = 0, device=self.DEVICE, agnostic_nms=True, augment=True)
+        # surface_crop_coords = [i for i in res_surface_cells[0].summary() if i['name']=='surface']
+
+        res_cells = self.MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.5, save=False, max_det = self.EXPECTED_CELLS,
+                                                        verbose=False, classes = 1, device=self.DEVICE, agnostic_nms=True, augment=True)
+        # cells_crop_coords = [i for i in res_surface_cells[0].summary() if i['name']=='cells']
         
-        surface_crop_coords = detect_areas(surface_crop_coords, pad_val = self.SURFACE_Y_PAD,
+        surface_crop_coords = detect_areas(res_surface[0].summary(), pad_val = self.SURFACE_Y_PAD,
                                            img_shape=test_detect_img.shape[0], expected_num=self.EXPECTED_SURFACES)
-        cells_crop_coords = detect_areas(cells_crop_coords, pad_val = self.SURFACE_Y_PAD,
+        cells_crop_coords = detect_areas(res_cells[0].summary(), pad_val = self.SURFACE_Y_PAD,
                                          img_shape=test_detect_img.shape[0], expected_num=self.EXPECTED_CELLS)
         if surface_crop_coords is None:
             logging.warning(f'No surface detected in orignal data for cropping: {self.scan_num}')
@@ -247,7 +253,10 @@ class RegistrationWorker:
         folder_save = self.DATA_SAVE_DIR
         if not folder_save.endswith('/'):
             folder_save = folder_save + '/'
-            
+        if suffix == '_unregistered':
+            folder_save = os.path.join(folder_save, 'unregistered/')
+        elif suffix == '_registered':
+            folder_save = os.path.join(folder_save, 'registered/')
         os.makedirs(folder_save, exist_ok=True)
         hdf5_filename = f'{folder_save}{self.scan_num}{suffix}.h5'
         with h5py.File(hdf5_filename, 'w') as hf:
