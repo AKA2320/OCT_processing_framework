@@ -16,7 +16,6 @@ Standalone applications for macOS and Windows are also available for download fr
 *   **Multi-format Support:** Supports `.h5` and `.dcm` OCT data formats
 *   **Batch Processing:** GUI supports batch processing of multiple volumes; command-line interface includes SLURM multiprocessing capabilities for handling large datasets efficiently
 *   **Standalone Applications:** Pre-built macOS and Windows applications available for easy deployment without Python installation
-*   **Process Cancellation:** GUI provides ability to cancel long-running registration processes
 
 ## Installation
 
@@ -56,7 +55,7 @@ Standalone applications for macOS and Windows are also available for download fr
     uv sync
     ```
 
-4. **Install optional dependencies (multiprocessing support):**
+4. **Install optional dependencies (multiprocessing support) (SLURM based multiprocessing):**
     ```shell
     pip install ".[multiproc]"  # Using pip
     # or
@@ -81,15 +80,14 @@ The GUI provides a user-friendly interface with three main tabs for different wo
 - Configure processing parameters in real-time:
   - Expected Cells: Number of cell layers to detect (default: 2)
   - Expected Surfaces: Number of surfaces to detect (default: 2)
-  - USE_MODEL_X: Enable/disable X-axis motion correction using TransMorph model
-  - DISABLE_TQDM: Enable/disable progress bars for cleaner output
+  - Use ML Model for Lateral(X) Motion Correction: Enable/disable X-axis motion correction using TransMorph model (if disabled it will use traditional registration)
+  - Save Feature Detections: Save annotated images of the detected features
 - Cancel long-running registration processes using the Cancel button
 
 #### 3. Batch Register Data Tab
 - Process multiple OCT volumes in batch mode
 - Same configurable parameters as single registration
 - Process entire directories of `.h5` files
-- Cancel batch processing if needed
 
 To use the GUI:
 
@@ -117,7 +115,7 @@ The command-line interface provides access to advanced features including SLURM-
    - Input data directory (`DATA_LOAD_DIR`): Path to the parent directory containing scan folders (e.g., `/path/to/data_folder`).
    - Output save directory (`DATA_SAVE_DIR`): Path where registered data will be saved (e.g., `/path/to/output_folder`).
    - Model paths for feature detection and translation.
-   - Processing parameters (`USE_MODEL_X`, `EXPECTED_SURFACES`, `EXPECTED_CELLS`).
+   - Processing parameters (`USE_MODEL_LATERAL_TRANSLATION`, `EXPECTED_SURFACES`, `EXPECTED_CELLS`, `SAVE_DETECTIONS`).
    - Multiprocessing options (`ENABLE_MULTIPROC_SLURM`).
 
    **Example Directory Structure for Batch Processing:**
@@ -132,7 +130,7 @@ The command-line interface provides access to advanced features including SLURM-
        └── scan_003.h5
    ```
    
-   - Each scan folder (`scan_001`, `scan_002`, etc.) should contain a single `.h5` file with the same name as the folder.
+   - Each scan folder (`scan_001`, `scan_002`, etc.) should contain a single `.h5` or `.dcm` files.
 
 2. **Run the registration:**
    ```shell
@@ -165,23 +163,15 @@ The standalone applications provide the same GUI interface as the Python version
 - **`registration_script.py`**: Core registration backend for command-line usage with SLURM multiprocessing support
 
 ### Key Modules
-- **`utils/reg_util_funcs.py`**: Core registration utilities including motion correction, flattening, and feature detection functions
-- **`utils/util_funcs.py`**: General-purpose utility functions for data handling and processing, including file loading and preprocessing
-- **`GUI_scripts/gui_registration_script.py`**: GUI-specific registration workflow management with cancellation support
-- **`funcs_transmorph.py`**: TransMorph model implementation and integration for deep learning-based registration
-- **`config_transmorph.py`**: TransMorph model configuration parameters
-
-### GUI Components
-- **`GUI_scripts/`**: Directory containing GUI-specific scripts and modules
+- **`utils/`**: Contains all utilities including motion correction, flattening, and feature detection funtions
+- **`registration_scripts/`**: Contains the registration worker, and gui wrapper
 
 ### Models
 The `models/` directory contains pre-trained models:
-
 - **`feature_detect_yolov12best.pt`**: YOLO-based model for anatomical feature detection in OCT images
-- **`model_transmorph_LRNPOSEMBD_Large_onlyX_batch32_ncc_normalized_shiftrange3_dynamiccrop_onlyMSE.pt`**: Advanced TransMorph model for X-axis motion correction using Swin Transformer architecture
+- **`transmorph_lateral_X_translation.pt.pt`**: Advanced TransMorph model for X-axis motion correction using Swin Transformer architecture
 
 ## Dependencies
-
 Key dependencies (see `pyproject.toml` for complete list):
 - **Deep Learning**: PyTorch
 - **Image Processing**: scikit-image, OpenCV
