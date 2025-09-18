@@ -8,7 +8,7 @@ from utils.util_funcs import min_max, merge_intervals
 
 
 ## Misc Functions
-def filter_list(result_list,expected_num):
+def filter_list(result_list, expected_num):
     grouped = defaultdict(list)
     for item in result_list:
         grouped[item['name']].append(item)
@@ -40,8 +40,8 @@ def preprocess_img(data):
     data = data.transpose(1,0)
     data = min_max(data)
     data = (data*255).astype(np.uint8)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(20, 20))
-    data = clahe.apply(data)
+    # clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(20, 20))
+    # data = clahe.apply(data)
     data = np.dstack([[data]*3]).transpose(1,2,0)
     data = np.ascontiguousarray(data)
     return data
