@@ -40,7 +40,7 @@ def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):
             transforms_all[i] = np.dot(transforms_all[i],temp_tform_manual)
     return transforms_all
 
-def y_motion_correcting(data,slice_coords,top_surf,partition_coord,disable_tqdm,scan_num):
+def y_motion_correcting(data, slice_coords, top_surf, partition_coord, disable_tqdm,scan_num):
     temp_sliced_data = data[:, np.r_[tuple(np.r_[start:end] for start, end in slice_coords)], :].copy()
     static_y_motion = np.argmax(np.sum(temp_sliced_data,axis=(1,2)))
     tr_all_y = all_trans_y(temp_sliced_data,static_y_motion,disable_tqdm,scan_num)

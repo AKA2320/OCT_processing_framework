@@ -43,7 +43,7 @@ def all_tran_flat(data,static_flat,disable_tqdm, scan_num):
             transforms_all[i] = np.dot(transforms_all[i],temp_tform_manual)
     return transforms_all
 
-def flatten_data(data,slice_coords,top_surf, partition_coord,disable_tqdm, scan_num):
+def flatten_data(data, slice_coords, top_surf, partition_coord, disable_tqdm, scan_num):
     temp_sliced_data = data[:, np.r_[tuple(np.r_[start:end] for start, end in slice_coords)], :].copy()
     static_flat = np.argmax(np.sum(temp_sliced_data,axis=(0,1)))
 
