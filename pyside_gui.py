@@ -18,8 +18,10 @@ from PySide6.QtWidgets import (
     QTabWidget,
 )
 from PySide6.QtCore import QThread, Signal
-import napari
-from utils.load_data_funcs import GUI_load_h5, GUI_load_dcm
+# import napari
+from utils.load_data_funcs import GUI_load_h5, GUI_load_dcm, load_napari_viewer
+# from utils.util_funcs import min_max
+# import numpy as np
 from registration_scripts.gui_reg_process_wrapper import run_registration_process
 
 
@@ -177,10 +179,12 @@ class LoadTab(QWidget):
     def on_data_loaded(self, data):
         if self.visualize_checkbox.isChecked():
             self.update_status.emit("Visualizing with napari...")
-            napari.view_image(data)
+            load_napari_viewer(data)
+            # napari.view_image(data)
             self.update_status.emit("Visualization complete.")
         else:
             QMessageBox.information(self, "Load Complete", f"Data loaded successfully with shape: {data.shape}")
+
 
     def on_load_error(self, message):
         self.update_status.emit("An error occurred during loading.")
