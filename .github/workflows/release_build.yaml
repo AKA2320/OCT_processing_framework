@@ -34,7 +34,7 @@ jobs:
     - name: Zip macos executable
       run: |
         cd dist
-        zip -r OCT_mac_app.zip OCT_mac_app.app
+        zip -r OCT_mac_app.zip OCT_mac_app
         ls -l
       shell: pwsh
 
