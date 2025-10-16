@@ -10,7 +10,7 @@ from utils.flatten_correction_util_funcs import flatten_data
 from utils.y_correction_util_funcs import y_motion_correcting
 from utils.x_correction_util_funcs import x_motion_coorection
 from utils.util_funcs import ncc
-import sys
+import gc
 import logging
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', stream=sys.stdout )
 class ProcessStdout:
@@ -152,26 +152,35 @@ class RegistrationWorker:
         return surface_coords, partition_coord
 
     def _process_data_pipeline(self, cropped_data):
-        """Process data through flattening and motion correction pipeline"""
+        """Memory optimized processing pipeline with explicit cleanup."""
 
         # Flatten data
         self.pbar.set_description(desc = f'Flattening {self.scan_num} surfaces.....')
         if self.DISABLE_TQDM:
             logging.info("Starting Flattening for data")
         cropped_data = self._flatten_data(cropped_data)
-        
+
+        # Force garbage collection after flattening
+        gc.collect()
+
         # Correct Y motion
         self.pbar.set_description(desc = f'Correcting {self.scan_num} Y-Motion.....')
         if self.DISABLE_TQDM:
             logging.info("Starting Y-Motion correction for data")
         cropped_data = self._correct_y_motion(cropped_data)
-        
+
+        # Force garbage collection after Y-motion correction
+        gc.collect()
+
         # Correct X motion
         self.pbar.set_description(desc = f'Correcting {self.scan_num} X-Motion.....')
         if self.DISABLE_TQDM:
             logging.info("Starting X-Motion correction for data")
         cropped_data = self._correct_x_motion(cropped_data)
-        
+
+        # Final cleanup
+        gc.collect()
+
         return cropped_data
 
     def _flatten_data(self, data):
