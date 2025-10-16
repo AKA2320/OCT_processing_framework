@@ -13,14 +13,14 @@ from utils.util_funcs import warp_image_affine
 def err_fun_flat(shif, x, y , past_shift):
     """Optimized error function with reduced memory allocation."""
     # Warp once and reuse for both x and y adjustments
-    x_warped = warp_image_affine(x, [-past_shift, 0])
-    y_warped = warp_image_affine(y, [past_shift, 0])
+    warped_x = warp_image_affine(x, [-past_shift, 0])
+    warped_y = warp_image_affine(y, [past_shift, 0])
 
     # Additional shifts for NCC computation
-    warped_x_stat = warp_image_affine(x_warped, [-shif[0], 0])
-    warped_y_mov = warp_image_affine(y_warped, [shif[0], 0])
+    warped_x = warp_image_affine(warped_x, [-shif[0], 0])
+    warped_y = warp_image_affine(warped_y, [shif[0], 0])
 
-    corr = ncc(warped_x_stat, warped_y_mov)
+    corr = ncc(warped_x, warped_y)
     return float(1 - corr)
     
 def all_tran_flat(data,static_flat,disable_tqdm, scan_num):

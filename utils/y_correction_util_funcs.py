@@ -10,13 +10,13 @@ from utils.util_funcs import warp_image_affine
 def err_fun_y(shif, x, y, past_shift):
     """Optimized error function for Y-motion correction."""
     # Warp once per call and reuse
-    x_warped = warp_image_affine(x, [0, -past_shift])
-    y_warped = warp_image_affine(y, [0, past_shift])
+    warped_x = warp_image_affine(x, [0, -past_shift])
+    warped_y = warp_image_affine(y, [0, past_shift])
 
-    warped_x_stat = warp_image_affine(x_warped, [0, -shif[0]])
-    warped_y_mov = warp_image_affine(y_warped, [0, shif[0]])
+    warped_x = warp_image_affine(warped_x, [0, -shif[0]])
+    warped_y = warp_image_affine(warped_y, [0, shif[0]])
 
-    corr = ncc(warped_x_stat, warped_y_mov)
+    corr = ncc(warped_x, warped_y)
     return float(1 - corr)
 
 def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):

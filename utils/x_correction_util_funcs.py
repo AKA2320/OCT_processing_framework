@@ -15,25 +15,25 @@ from utils.util_funcs import warp_image_affine
 def shift_func(shif, x, y, past_shift):
     """Optimized shift function for line-based corrections."""
     # Reuse shifted images to avoid redundant computations
-    x_shifted = scp.shift(x, -past_shift, order=3, mode='nearest')
-    y_shifted = scp.shift(y, past_shift, order=3, mode='nearest')
+    warped_x = scp.shift(x, -past_shift, order=3, mode='nearest')
+    warped_y = scp.shift(y, past_shift, order=3, mode='nearest')
 
-    warped_x_stat = scp.shift(x_shifted, -shif[0], order=3, mode='nearest')
-    warped_y_mov = scp.shift(y_shifted, shif[0], order=3, mode='nearest')
+    warped_x = scp.shift(warped_x, -shif[0], order=3, mode='nearest')
+    warped_y = scp.shift(warped_y, shif[0], order=3, mode='nearest')
 
-    corr = ncc(warped_x_stat, warped_y_mov)
+    corr = ncc(warped_x, warped_y)
     return 1 - corr
 
 def err_fun_x(shif, x, y, past_shift):
     """Optimized error function for patch-based corrections."""
     # Warp once per call and reuse
-    x_warped = warp_image_affine(x, [-past_shift, 0])
-    y_warped = warp_image_affine(y, [past_shift, 0])
+    warped_x = warp_image_affine(x, [-past_shift, 0])
+    warped_y = warp_image_affine(y, [past_shift, 0])
 
-    warped_x_stat = warp_image_affine(x_warped, [-shif[0], 0])
-    warped_y_mov = warp_image_affine(y_warped, [shif[0], 0])
+    warped_x = warp_image_affine(warped_x, [-shif[0], 0])
+    warped_y = warp_image_affine(warped_y, [shif[0], 0])
 
-    corr = ncc(warped_x_stat, warped_y_mov)
+    corr = ncc(warped_x, warped_y)
     return float(1 - corr)
 
 def get_line_shift(line_1d_stat, line_1d_mov):
