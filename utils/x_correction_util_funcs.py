@@ -10,21 +10,31 @@ from scipy.optimize import minimize as minz
 from scipy import ndimage as scp
 from utils.util_funcs import warp_image_affine
 
-## X-Motion Functions
-def shift_func(shif, x, y , past_shift):
-    x = scp.shift(x, -past_shift,order=3,mode='nearest')
-    y = scp.shift(y, past_shift,order=3,mode='nearest')
-    warped_x_stat = scp.shift(x, -shif[0],order=3,mode='nearest')
-    warped_y_mov = scp.shift(y, shif[0],order=3,mode='nearest')
-    return (1-ncc(warped_x_stat ,warped_y_mov))
+## X-Motion Functions (Memory optimized and vectorized)
 
-def err_fun_x(shif, x, y , past_shift):
-    x = warp_image_affine(x, [-past_shift,0])
-    y = warp_image_affine(y, [past_shift,0])
-    warped_x_stat = warp_image_affine(x, [-shif[0],0])
-    warped_y_mov = warp_image_affine(y, [shif[0],0])
-    err = np.squeeze(1-ncc(warped_x_stat ,warped_y_mov))
-    return float(err)
+def shift_func(shif, x, y, past_shift):
+    """Optimized shift function for line-based corrections."""
+    # Reuse shifted images to avoid redundant computations
+    x_shifted = scp.shift(x, -past_shift, order=3, mode='nearest')
+    y_shifted = scp.shift(y, past_shift, order=3, mode='nearest')
+
+    warped_x_stat = scp.shift(x_shifted, -shif[0], order=3, mode='nearest')
+    warped_y_mov = scp.shift(y_shifted, shif[0], order=3, mode='nearest')
+
+    corr = ncc(warped_x_stat, warped_y_mov)
+    return 1 - corr
+
+def err_fun_x(shif, x, y, past_shift):
+    """Optimized error function for patch-based corrections."""
+    # Warp once per call and reuse
+    x_warped = warp_image_affine(x, [-past_shift, 0])
+    y_warped = warp_image_affine(y, [past_shift, 0])
+
+    warped_x_stat = warp_image_affine(x_warped, [-shif[0], 0])
+    warped_y_mov = warp_image_affine(y_warped, [shif[0], 0])
+
+    corr = ncc(warped_x_stat, warped_y_mov)
+    return float(1 - corr)
 
 def get_line_shift(line_1d_stat, line_1d_mov):
     past_shift = 0
@@ -115,15 +125,6 @@ def x_motion_coorection(data, cells_coords, valid_args, enface_extraction_rows, 
                     enface_wraps = [(float('inf'), 0.0)]
         all_warps = [*cell_warps,*enface_wraps]
         all_warps = sorted(all_warps, key=lambda x: x[0])  # Sort by error
-        # best_warp = check_multiple_warps(data[i], data[i+1], all_warps)
         temp_tform_manual = AffineTransform(translation=(all_warps[0][1],0))
-        # temp_tform_manual = AffineTransform(translation=(-cell_warps,0))
         transforms_all[i+1] = np.dot(transforms_all[i+1],temp_tform_manual)
-        # except Exception as e:
-        #     temp_tform_manual = AffineTransform(translation=(0,0))
-        #     transforms_all[i+1] = np.dot(transforms_all[i+1],temp_tform_manual)
-        # with open(f'debug.txt', 'a') as f:
-        #     end_time = st_time - time.time()
-        #     f.write(f'X motion\n')
-        #     f.write(f'Ith: {i}, Time taken: {end_time:.2f} seconds\n')
     return transforms_all

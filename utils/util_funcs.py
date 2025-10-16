@@ -14,11 +14,13 @@ import requests
 import sys
 
 def ncc(array1, array2):
-    a1 = array1.flatten()-array1.mean()
-    a2 = array2.flatten()-array2.mean()
+    # Flatten views and Subtract means 
+    a1 = array1.ravel()-array1.mean()
+    a2 = array2.ravel()-array2.mean()
+    # Compute normalized correlation efficiently
     numerator = np.dot(a1, a2)
     denominator = np.linalg.norm(a1) * np.linalg.norm(a2)
-    return numerator / denominator if denominator != 0 else 0.0
+    return np.divide(numerator, denominator) if denominator != 0 else 0.0
 
 def min_max(data1, global_min=None, global_max=None):    
     min_val = np.min(data1) if global_min is None else global_min

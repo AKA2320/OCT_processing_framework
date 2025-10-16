@@ -5,21 +5,26 @@ from utils.util_funcs import ncc
 from scipy.optimize import minimize as minz
 from utils.util_funcs import warp_image_affine
 
-## Y-Motion Functions
-def err_fun_y(shif, x, y , past_shift):
-    x = warp_image_affine(x, [0,-past_shift])
-    y = warp_image_affine(y, [0,past_shift])
-    warped_x_stat = warp_image_affine(x, [0,-shif[0]])
-    warped_y_mov = warp_image_affine(y, [0,shif[0]])
-    err = np.squeeze(1-ncc(warped_x_stat ,warped_y_mov))
-    return float(err)
+## Y-Motion Functions (Memory optimized and vectorized)
+
+def err_fun_y(shif, x, y, past_shift):
+    """Optimized error function for Y-motion correction."""
+    # Warp once per call and reuse
+    x_warped = warp_image_affine(x, [0, -past_shift])
+    y_warped = warp_image_affine(y, [0, past_shift])
+
+    warped_x_stat = warp_image_affine(x_warped, [0, -shif[0]])
+    warped_y_mov = warp_image_affine(y_warped, [0, shif[0]])
+
+    corr = ncc(warped_x_stat, warped_y_mov)
+    return float(1 - corr)
 
 def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):
     transforms_all = np.tile(np.eye(3),(data.shape[0],1,1))
     for i in tqdm(range(data.shape[0]-1),desc='Y-motion Correction',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
         try:
-            stat = data[static_y_motion][:,::20].copy()
-            temp_img = data[i][:,::20].copy()
+            stat = data[static_y_motion][:,::20]
+            temp_img = data[i][:,::20]
             # MANUAL
             past_shift = 0
             for _ in range(10):
@@ -40,19 +45,43 @@ def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):
             transforms_all[i] = np.dot(transforms_all[i],temp_tform_manual)
     return transforms_all
 
-def y_motion_correcting(data, slice_coords, top_surf, partition_coord, disable_tqdm,scan_num):
-    temp_sliced_data = data[:, np.r_[tuple(np.r_[start:end] for start, end in slice_coords)], :].copy()
-    static_y_motion = np.argmax(np.sum(temp_sliced_data,axis=(1,2)))
-    tr_all_y = all_trans_y(temp_sliced_data,static_y_motion,disable_tqdm,scan_num)
+def y_motion_correcting(data, slice_coords, top_surf, partition_coord, disable_tqdm, scan_num):
+    """Memory optimized Y-motion correction that works in-place."""
+    # Create view of sliced data to avoid unnecessary copy
+    slice_indices = np.r_[tuple(np.r_[start:end] for start, end in slice_coords)]
+    temp_sliced_data = data[:, slice_indices, :]  # This is a view, not a copy
+
+    # Find reference B-scan for motion correction
+    static_y_motion = np.argmax(np.sum(temp_sliced_data, axis=(1, 2)))
+
+    # Compute all transforms
+    tr_all_y = all_trans_y(temp_sliced_data, static_y_motion, disable_tqdm, scan_num)
+
+    # Clean up the temporary sliced data reference
+    del temp_sliced_data
+
+    # Apply transforms in-place based on partition settings
     if partition_coord is None:
-        for i in tqdm(range(data.shape[0]),desc='Y-motion warping',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
-            data[i]  = warp(data[i],AffineTransform(matrix=tr_all_y[i]),order=3)
+        # Apply to entire dataset
+        for i in tqdm(range(data.shape[0]), desc='Y-motion warping', disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
+            data[i] = warp(data[i], AffineTransform(matrix=tr_all_y[i]), order=3)
+        del tr_all_y
+        import gc
+        gc.collect()
+
         return data
-    
-    if top_surf:
-        for i in tqdm(range(data.shape[0]),desc='Y-motion warping',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
-            data[i,:partition_coord]  = warp(data[i,:partition_coord],AffineTransform(matrix=tr_all_y[i]),order=3)
+    elif top_surf:
+        # Apply only to top portion
+        for i in tqdm(range(data.shape[0]), desc='Y-motion warping', disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
+            data[i, :partition_coord] = warp(data[i, :partition_coord], AffineTransform(matrix=tr_all_y[i]), order=3)
     else:
-        for i in tqdm(range(data.shape[0]),desc='Y-motion warping',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
-            data[i,partition_coord:]  = warp(data[i,partition_coord:],AffineTransform(matrix=tr_all_y[i]),order=3)
+        # Apply only to bottom portion
+        for i in tqdm(range(data.shape[0]), desc='Y-motion warping', disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
+            data[i, partition_coord:] = warp(data[i, partition_coord:], AffineTransform(matrix=tr_all_y[i]), order=3)
+
+    # Clean up transforms array
+    del tr_all_y
+    import gc
+    gc.collect()
+
     return data

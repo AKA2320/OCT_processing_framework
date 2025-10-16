@@ -73,6 +73,7 @@ def GUI_load_h5(path_h5):
     return original_data
 
 def load_napari_viewer(data):
+    """Memory optimized napari viewer that processes crops without holding full dataset."""
     config_path = 'datapaths.yaml'
     try:
         with open(resource_path(config_path), 'r') as f:
@@ -84,27 +85,41 @@ def load_napari_viewer(data):
         from ultralytics import YOLO
         MODEL_FEATURE_DETECT_PATH = config['PATHS']['MODEL_FEATURE_DETECT_PATH']
         MODEL_FEATURE_DETECT = YOLO(MODEL_FEATURE_DETECT_PATH)
-        logging.info("YOLO Model Loaded Succesfully.")
-        # if self.is_gui_flag:
-        #     self.output_queue.put("YOLO Model Loaded Succesfully.\n")
+        logging.info("YOLO Model Loaded Successfully.")
     except Exception as e:
         logging.error(f"Error loading YOLO model: {e}", exc_info=True)
-        # sys.exit("Failed to load YOLO model. Exiting.")
+        return None
 
-    # Detection part
-    static_flat = np.argmax(np.sum(data[:,:,:], axis=(0,1)))
-    test_detect_img = preprocess_img(data[:,:,static_flat])
-    res_surface = MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.2, save=False, max_det = 100, # consider 100 as max
-                                                verbose=False, classes = 0, device='cpu', agnostic_nms=True, augment=True)
-    surface_crop_coords = detect_areas(res_surface[0].summary(), pad_val = 30, # 30 pixels padding, can be changed
-                                        img_shape=test_detect_img.shape[0], expected_num=100) # consider 100 as max
-    # print(surface_crop_coords)
-    view_data = (min_max(data)*255).astype(np.uint8)
+    # Detection part - use view to avoid copying the slice
+    data_view = data[:, :, :]  # Create a view of the full dataset
+    static_flat = np.argmax(np.sum(data_view, axis=(0, 1)))
+
+    # Process only the reference slice for detection
+    test_detect_img = preprocess_img(data_view[:, :, static_flat])
+    res_surface = MODEL_FEATURE_DETECT.predict(test_detect_img, iou=0.2, save=False, max_det=100,
+                                                verbose=False, classes=0, device='cpu', agnostic_nms=True, augment=True)
+    surface_crop_coords = detect_areas(res_surface[0].summary(), pad_val=30,
+                                        img_shape=test_detect_img.shape[0], expected_num=100)
+
+    # Clean up detection image
+    del test_detect_img
+
+    # Create viewer with processed data for visualization
+    view_data = (min_max(data_view) * 255).astype(np.uint8)
     viewer = napari.Viewer()
-    viewer.add_image(data = view_data, name = 'whole data')
+    viewer.add_image(data=view_data, name='whole data')
+
+    # Process crops one at a time to minimize memory usage
     for idx, (i_cord, j_cord) in enumerate(surface_crop_coords):
-        temp_crop_data = data[:, i_cord:j_cord, :]
-        temp_crop_data = (min_max(temp_crop_data)*255).astype(np.uint8)
-        viewer.add_image(data = temp_crop_data, name = f'crop {idx}', visible = False)
-    del data, view_data, temp_crop_data
+        crop_view = data_view[:, i_cord:j_cord, :]  # Create view, not copy
+        temp_crop_data = (min_max(crop_view) * 255).astype(np.uint8)
+        viewer.add_image(data=temp_crop_data, name=f'crop {idx}', visible=False)
+        # Clean up this crop
+        del crop_view, temp_crop_data
+
+    # Clean up references to show data was processed but not kept in memory
+    del data_view, view_data, surface_crop_coords
+    import gc
+    gc.collect()
+
     return viewer

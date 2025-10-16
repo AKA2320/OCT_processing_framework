@@ -3,7 +3,6 @@ from torchvision import transforms
 import torch.nn.functional as F
 from collections import defaultdict
 import numpy as np
-import cv2
 from utils.util_funcs import min_max, merge_intervals
 
 
