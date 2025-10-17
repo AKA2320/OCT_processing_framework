@@ -1,5 +1,5 @@
 from skimage.transform import warp, AffineTransform
-import cv2
+import gc
 from tqdm import tqdm
 import numpy as np
 from utils.util_funcs import ncc
@@ -23,7 +23,7 @@ def err_fun_flat(shif, x, y , past_shift):
     corr = ncc(warped_x, warped_y)
     return float(1 - corr)
     
-def all_tran_flat(data,static_flat,disable_tqdm, scan_num):
+def all_tran_flat(data, static_flat, disable_tqdm, scan_num):
     transforms_all = np.tile(np.eye(3),(data.shape[2],1,1))
     for i in tqdm(range(data.shape[2]),desc='Flattening surfaces',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
         try:
@@ -66,10 +66,7 @@ def flatten_data(data, slice_coords, top_surf, partition_coord, disable_tqdm, sc
         # Apply to entire data volume
         for i in tqdm(range(data.shape[2]), desc='Flat warping', disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
             data[:, :, i] = warp(data[:, :, i], AffineTransform(matrix=tr_all[i]), order=3)
-        del tr_all
-        import gc
         gc.collect()
-
         return data
     elif top_surf:
         # Apply only to top portion
@@ -80,9 +77,5 @@ def flatten_data(data, slice_coords, top_surf, partition_coord, disable_tqdm, sc
         for i in tqdm(range(data.shape[2]), desc='Flat warping', disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
             data[:, partition_coord:, i] = warp(data[:, partition_coord:, i], AffineTransform(matrix=tr_all[i]), order=3)
 
-    # Clean up transforms array
-    del tr_all
-    import gc
     gc.collect()
-
     return data
