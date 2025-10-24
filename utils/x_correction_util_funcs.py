@@ -9,7 +9,7 @@ from utils.transmorph_helper_funcs import infer_x_translation
 from scipy.optimize import minimize as minz
 from scipy import ndimage as scp
 from utils.util_funcs import warp_image_affine
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
 ## X-Motion Functions (Memory optimized and vectorized)
@@ -129,7 +129,7 @@ def x_motion_coorection(data, cells_coords, valid_args, enface_extraction_rows, 
     transforms_all = np.tile(np.eye(3),(data.shape[0],1,1))
     valid_indices = [i for i in range(0, data.shape[0]-1, 2) if i in valid_args]
     partial_func = partial(compute_transform_for_pair, data=data, cells_coords=cells_coords, enface_extraction_rows=enface_extraction_rows, MODEL_X_TRANSLATION=MODEL_X_TRANSLATION)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=None) as executor:
+    with ThreadPoolExecutor(max_workers = None) as executor:
         results = list(executor.map(partial_func, valid_indices))
     for i, result in zip(valid_indices, results):
         transforms_all[i+1] = np.dot(transforms_all[i+1], result)

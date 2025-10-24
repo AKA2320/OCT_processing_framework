@@ -20,7 +20,7 @@ def _compute_y_transform(i, stat, sampled_data):
                         args=(stat, temp_img, past_shift))['x']
             past_shift += move[0]
         temp_tform_manual = AffineTransform(translation=(0, past_shift*2))
-        return temp_tform_manual.matrix
+        return temp_tform_manual.params
     except Exception as e:
         return np.eye(3)
 
@@ -43,7 +43,7 @@ def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):
     static_data = sampled_data[static_y_motion,:,:]
     del data
     worker = partial(_compute_y_transform, stat=static_data, sampled_data=sampled_data)
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers = None) as executor:
         computed_transforms = list(executor.map(worker, range(data_depth_z-1)))
     transforms_all[:data_depth_z-1] = computed_transforms
     # Note: only first data_depth_z-1 transforms are computed, last remains eye as initialized

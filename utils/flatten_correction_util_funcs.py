@@ -21,7 +21,7 @@ def _compute_flatten_transform(i, stat, sampled_data):
                         args=(stat, temp_img, past_shift))['x']
             past_shift += move[0]
         temp_tform_manual = AffineTransform(translation=(past_shift*2, 0))
-        return temp_tform_manual.matrix
+        return temp_tform_manual.params
     except Exception as e:
         return np.eye(3)
 
@@ -44,7 +44,7 @@ def all_tran_flat(data, static_flat, disable_tqdm, scan_num):
     static_data = sampled_data[:,:,static_flat]
     del data
     worker = partial(_compute_flatten_transform, stat=static_data, sampled_data=sampled_data)
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers = None) as executor:
         transforms_all = list(executor.map(worker, range(data_depth_y)))
     transforms_all = np.array(transforms_all)
     del sampled_data, static_data
