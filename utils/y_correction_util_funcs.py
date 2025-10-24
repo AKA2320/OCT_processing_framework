@@ -20,11 +20,15 @@ def err_fun_y(shif, x, y, past_shift):
     return float(1 - corr)
 
 def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):
-    transforms_all = np.tile(np.eye(3),(data.shape[0],1,1))
-    for i in tqdm(range(data.shape[0]-1),desc='Y-motion Correction',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
+    data_depth_z = data.shape[0]
+    transforms_all = np.tile(np.eye(3),(data_depth_z,1,1))
+    sampled_data = data[:,:,::20] # dont need too much info surface registration
+    static_data = sampled_data[static_y_motion,:,:]
+    del data
+    for i in tqdm(range(data_depth_z-1),desc='Y-motion Correction',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
         try:
-            stat = data[static_y_motion][:,::20]
-            temp_img = data[i][:,::20]
+            stat = static_data
+            temp_img = sampled_data[i,:,:]
             # MANUAL
             past_shift = 0
             for _ in range(10):
@@ -36,11 +40,6 @@ def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):
             temp_tform_manual = AffineTransform(matrix = AffineTransform(translation=(0,past_shift*2)))
             transforms_all[i] = np.dot(transforms_all[i],temp_tform_manual)
         except Exception as e:
-            # with open(f'debugs/debug{scan_num}.txt', 'a') as f:
-            #     f.write(f'Y motion EVERYTHIN FAILED HERE\n')
-            #     f.write(f'NAME: {scan_num}\n')
-            #     f.write(f'Ith: {i}\n')
-            # raise Exception(e)
             temp_tform_manual = AffineTransform(translation=(0,0))
             transforms_all[i] = np.dot(transforms_all[i],temp_tform_manual)
     return transforms_all

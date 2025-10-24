@@ -24,11 +24,15 @@ def err_fun_flat(shif, x, y , past_shift):
     return float(1 - corr)
     
 def all_tran_flat(data, static_flat, disable_tqdm, scan_num):
-    transforms_all = np.tile(np.eye(3),(data.shape[2],1,1))
-    for i in tqdm(range(data.shape[2]),desc='Flattening surfaces',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
+    data_depth_y = data.shape[2]
+    transforms_all = np.tile(np.eye(3),(data_depth_y,1,1))
+    sampled_data = data[::20,:,:] # dont need too much info surface registration
+    static_data = sampled_data[:,:,static_flat]
+    del data
+    for i in tqdm(range(data_depth_y),desc='Flattening surfaces',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
         try:
-            stat = data[:,:,static_flat][::20]
-            temp_img = data[:,:,i][::20]
+            stat = static_data
+            temp_img = sampled_data[:,:,i]
             # MANUAL
             past_shift = 0
             for _ in range(10):
