@@ -46,7 +46,7 @@ def preprocess_img(data):
     return data
 
 def crop_data(data,surface_coords,cells_coords,max_crop_shape):
-    uncroped_data = data.copy()
+    uncroped_data = data
     merged_coords = []
     if surface_coords is not None:
         surface_coords[:,0],surface_coords[:,1] = surface_coords[:,0]-30, surface_coords[:,1]+30
