@@ -125,7 +125,7 @@ def compute_transform_for_pair(i, data, cells_coords, enface_extraction_rows, MO
     temp_tform_manual = AffineTransform(translation=(all_warps[0][1],0))
     return temp_tform_manual
 
-def x_motion_coorection(data, cells_coords, valid_args, enface_extraction_rows, disable_tqdm, scan_num, MODEL_X_TRANSLATION):
+def x_motion_correction(data, cells_coords, valid_args, enface_extraction_rows, disable_tqdm, scan_num, MODEL_X_TRANSLATION):
     transforms_all = np.tile(np.eye(3),(data.shape[0],1,1))
     valid_indices = [i for i in range(0, data.shape[0]-1, 2) if i in valid_args]
     partial_func = partial(compute_transform_for_pair, data=data, cells_coords=cells_coords, enface_extraction_rows=enface_extraction_rows, MODEL_X_TRANSLATION=MODEL_X_TRANSLATION)

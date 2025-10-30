@@ -8,7 +8,7 @@ from utils.transmorph_helper_funcs import preprocess_img, detect_areas, crop_dat
 from utils.load_data_funcs import load_data_dcm, load_h5_data
 from utils.flatten_correction_util_funcs import flatten_data
 from utils.y_correction_util_funcs import y_motion_correcting
-from utils.x_correction_util_funcs import x_motion_coorection
+from utils.x_correction_util_funcs import x_motion_correction
 from utils.util_funcs import ncc
 import gc
 import logging
@@ -247,7 +247,7 @@ class RegistrationWorker:
         else:
             valid_args = np.arange(data.shape[0])
 
-        tr_all = x_motion_coorection(data, cells_coords_for_x, valid_args, enface_extraction_rows,
+        tr_all = x_motion_correction(data, cells_coords_for_x, valid_args, enface_extraction_rows,
                             self.DISABLE_TQDM, self.scan_num, self.MODEL_X_TRANSLATION)
         
         for i in tqdm(range(1, data.shape[0], 2),desc='X-motion warping',
