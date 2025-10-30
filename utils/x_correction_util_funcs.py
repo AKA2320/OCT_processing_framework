@@ -67,7 +67,7 @@ def check_multiple_warps(stat_img, mov_img, *args):
         errors.append(check_best_warp(stat_img, mov_img, warps[warp_value]))
     return np.argmax(errors)
 
-def x_motion_coorection(data, cells_coords, valid_args, enface_extraction_rows, disable_tqdm, scan_num, MODEL_X_TRANSLATION):
+def x_motion_correction(data, cells_coords, valid_args, enface_extraction_rows, disable_tqdm, scan_num, MODEL_X_TRANSLATION):
     transforms_all = np.tile(np.eye(3),(data.shape[0],1,1))
     for i in tqdm(range(0,data.shape[0]-1,2),desc='X-motion Correction',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
         # st_time = time.time()
