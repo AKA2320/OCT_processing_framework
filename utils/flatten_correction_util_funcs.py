@@ -3,22 +3,24 @@ import gc
 from tqdm import tqdm
 import numpy as np
 from utils.util_funcs import ncc
-# from collections import defaultdict
 from scipy.optimize import minimize as minz
 from utils.util_funcs import warp_image_affine
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 
-## Flattening Functions (Memory optimized and vectorized)
+## Flattening Functions
 
 def _compute_flatten_transform(i, stat, sampled_data):
     """Worker function for parallel per-slice flatten correction."""
     try:
         temp_img = sampled_data[:, :, i]
         past_shift = 0
+        shift_threshold = 0.1
         for _ in range(10):
             move = minz(method='powell', fun=err_fun_flat, x0=np.array([0.0]), bounds=[(-4,4)],
                         args=(stat, temp_img, past_shift))['x']
+            if abs(move[0]) < shift_threshold:
+                break
             past_shift += move[0]
         temp_tform_manual = AffineTransform(translation=(past_shift*2, 0))
         return temp_tform_manual.params

@@ -1,11 +1,8 @@
-# from pydicom import dcmread
-# import time
 from skimage.transform import warp, AffineTransform
 from tqdm import tqdm
 import numpy as np
 from utils.util_funcs import ncc
 from utils.transmorph_helper_funcs import infer_x_translation
-# from collections import defaultdict
 from scipy.optimize import minimize as minz
 from scipy import ndimage as scp
 from utils.util_funcs import warp_image_affine
