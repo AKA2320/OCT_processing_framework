@@ -4,8 +4,28 @@ import numpy as np
 from utils.util_funcs import ncc
 from scipy.optimize import minimize as minz
 from utils.util_funcs import warp_image_affine
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+import gc
 
 ## Y-Motion Functions (Memory optimized and vectorized)
+
+def _compute_y_transform(i, stat, sampled_data):
+    """Worker function for parallel per-slice y-motion correction."""
+    try:
+        temp_img = sampled_data[i, :, :]
+        past_shift = 0
+        shift_threshold = 0.1
+        for _ in range(10):
+            move = minz(method='powell', fun=err_fun_y, x0=np.array([0.0]), bounds=[(-5,5)],
+                        args=(stat, temp_img, past_shift))['x']
+            if abs(move[0]) < shift_threshold:
+                break
+            past_shift += move[0]
+        temp_tform_manual = AffineTransform(translation=(0, past_shift*2))
+        return temp_tform_manual.params
+    except Exception as e:
+        return np.eye(3)
 
 def err_fun_y(shif, x, y, past_shift):
     """Optimized error function for Y-motion correction."""
@@ -25,23 +45,13 @@ def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):
     sampled_data = data[:,:,::20] # dont need too much info surface registration
     static_data = sampled_data[static_y_motion,:,:]
     del data
-    for i in tqdm(range(data_depth_z-1),desc='Y-motion Correction',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
-        try:
-            stat = static_data
-            temp_img = sampled_data[i,:,:]
-            # MANUAL
-            past_shift = 0
-            for _ in range(10):
-                move = minz(method='powell',fun = err_fun_y,x0 = np.array([0.0]), bounds=[(-5,5)],
-                            args = (stat
-                                    ,temp_img
-                                    ,past_shift))['x']
-                past_shift += move[0]
-            temp_tform_manual = AffineTransform(matrix = AffineTransform(translation=(0,past_shift*2)))
-            transforms_all[i] = np.dot(transforms_all[i],temp_tform_manual)
-        except Exception as e:
-            temp_tform_manual = AffineTransform(translation=(0,0))
-            transforms_all[i] = np.dot(transforms_all[i],temp_tform_manual)
+    worker = partial(_compute_y_transform, stat=static_data, sampled_data=sampled_data)
+    with ThreadPoolExecutor(max_workers = None) as executor:
+        computed_transforms = list(executor.map(worker, range(data_depth_z-1)))
+    transforms_all[:data_depth_z-1] = computed_transforms
+    # Note: only first data_depth_z-1 transforms are computed, last remains eye as initialized
+    del sampled_data, static_data
+    gc.collect()
     return transforms_all
 
 def y_motion_correcting(data, slice_coords, top_surf, partition_coord, disable_tqdm, scan_num):

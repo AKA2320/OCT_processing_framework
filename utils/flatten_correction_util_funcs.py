@@ -3,12 +3,29 @@ import gc
 from tqdm import tqdm
 import numpy as np
 from utils.util_funcs import ncc
-# from collections import defaultdict
 from scipy.optimize import minimize as minz
 from utils.util_funcs import warp_image_affine
-# import h5py
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from functools import partial
 
-## Flattening Functions (Memory optimized and vectorized)
+## Flattening Functions
+
+def _compute_flatten_transform(i, stat, sampled_data):
+    """Worker function for parallel per-slice flatten correction."""
+    try:
+        temp_img = sampled_data[:, :, i]
+        past_shift = 0
+        shift_threshold = 0.1
+        for _ in range(10):
+            move = minz(method='powell', fun=err_fun_flat, x0=np.array([0.0]), bounds=[(-4,4)],
+                        args=(stat, temp_img, past_shift))['x']
+            if abs(move[0]) < shift_threshold:
+                break
+            past_shift += move[0]
+        temp_tform_manual = AffineTransform(translation=(past_shift*2, 0))
+        return temp_tform_manual.params
+    except Exception as e:
+        return np.eye(3)
 
 def err_fun_flat(shif, x, y , past_shift):
     """Optimized error function with reduced memory allocation."""
@@ -16,38 +33,24 @@ def err_fun_flat(shif, x, y , past_shift):
     warped_x = warp_image_affine(x, [-past_shift, 0])
     warped_y = warp_image_affine(y, [past_shift, 0])
 
-    # Additional shifts for NCC computation
     warped_x = warp_image_affine(warped_x, [-shif[0], 0])
     warped_y = warp_image_affine(warped_y, [shif[0], 0])
 
     corr = ncc(warped_x, warped_y)
     return float(1 - corr)
-    
+
 def all_tran_flat(data, static_flat, disable_tqdm, scan_num):
     data_depth_y = data.shape[2]
     transforms_all = np.tile(np.eye(3),(data_depth_y,1,1))
-    sampled_data = data[::20,:,:] # dont need too much info surface registration
+    sampled_data = data[::20] # dont need too much info surface registration
     static_data = sampled_data[:,:,static_flat]
     del data
-    for i in tqdm(range(data_depth_y),desc='Flattening surfaces',disable=disable_tqdm, ascii="░▖▘▝▗▚▞█", leave=False):
-        try:
-            stat = static_data
-            temp_img = sampled_data[:,:,i]
-            # MANUAL
-            past_shift = 0
-            for _ in range(10):
-                move = minz(method='powell',fun = err_fun_flat,x0 = np.array([0.0]), bounds=[(-4,4)],
-                            args = (stat
-                                    ,temp_img
-                                    ,past_shift))['x']
-
-                past_shift += move[0]
-            temp_tform_manual = AffineTransform(translation=(past_shift*2,0))
-            transforms_all[i] = np.dot(transforms_all[i],temp_tform_manual)
-        except Exception as e:
-            # raise Exception(e)
-            temp_tform_manual = AffineTransform(translation=(0,0))
-            transforms_all[i] = np.dot(transforms_all[i],temp_tform_manual)
+    worker = partial(_compute_flatten_transform, stat=static_data, sampled_data=sampled_data)
+    with ThreadPoolExecutor(max_workers = None) as executor:
+        transforms_all = list(executor.map(worker, range(data_depth_y)))
+    transforms_all = np.array(transforms_all)
+    del sampled_data, static_data
+    gc.collect()
     return transforms_all
 
 def flatten_data(data, slice_coords, top_surf, partition_coord, disable_tqdm, scan_num):
