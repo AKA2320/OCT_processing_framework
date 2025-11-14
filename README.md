@@ -1,8 +1,8 @@
-# OCT Registration Framework
+# OCT Processing Framework
 
 ## Overview
 
-This project provides a comprehensive framework for performing registration of Optical Coherence Tomography (OCT) volumes. The framework focuses on providing both a user-friendly Graphical User Interface (GUI) and command-line tools for batch processing. It aims to correct for distortions and motion artifacts in OCT images, improving their quality and enabling more accurate analysis through advanced image processing techniques, deep learning models, and optimization algorithms.
+This project provides a comprehensive framework for performing processing of Optical Coherence Tomography (OCT) volumes. The framework focuses on providing both a user-friendly Graphical User Interface (GUI) and command-line tools for batch processing. It aims to correct for distortions and motion artifacts in OCT images, improving their quality and enabling more accurate analysis through advanced image processing techniques, deep learning models, and optimization algorithms.
 
 Standalone applications for macOS and Windows are also available for download from our GitHub releases, providing a convenient way to use the framework without installing Python or other dependencies.
 
