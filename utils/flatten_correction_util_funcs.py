@@ -45,7 +45,7 @@ def all_tran_flat(data, static_flat, disable_tqdm, scan_num):
     sampled_data = data[::20] # dont need too much info surface registration
     static_data = sampled_data[:,:,static_flat]
     del data
-    worker = partial(_compute_flatten_transform, stat=static_data, sampled_data=sampled_data)
+    worker = partial(_compute_flatten_transform, stat=static_data, sampled_data=sampled_data) # static 2D, sampled_data 3D
     with ThreadPoolExecutor(max_workers = None) as executor:
         transforms_all = list(executor.map(worker, range(data_depth_y)))
     transforms_all = np.array(transforms_all)
