@@ -25,12 +25,12 @@ def shift_func(shif, x, y, past_shift):
 
 def err_fun_x(shif, x, y, past_shift):
     """Optimized error function for patch-based corrections."""
-    # Warp once per call and reuse
-    warped_x = warp_image_affine(x, [-past_shift, 0])
-    warped_y = warp_image_affine(y, [past_shift, 0])
+    # # Warp once per call and reuse
+    # warped_x = warp_image_affine(x, [, 0])
+    # warped_y = warp_image_affine(y, [, 0])
 
-    warped_x = warp_image_affine(warped_x, [-shif[0], 0])
-    warped_y = warp_image_affine(warped_y, [shif[0], 0])
+    warped_x = warp_image_affine(x, [-shif[0]-past_shift, 0])
+    warped_y = warp_image_affine(y, [shif[0]+past_shift, 0])
 
     corr = ncc(warped_x, warped_y)
     return float(1 - corr)
