@@ -13,21 +13,14 @@ from functools import partial
 
 def shift_func(shif, x, y, past_shift):
     """Optimized shift function for line-based corrections."""
-    # Reuse shifted images to avoid redundant computations
-    warped_x = scp.shift(x, -past_shift, order=3, mode='nearest')
-    warped_y = scp.shift(y, past_shift, order=3, mode='nearest')
-
-    warped_x = scp.shift(warped_x, -shif[0], order=3, mode='nearest')
-    warped_y = scp.shift(warped_y, shif[0], order=3, mode='nearest')
+    warped_x = scp.shift(x, -shif[0]-past_shift, order=3, mode='nearest')
+    warped_y = scp.shift(y, shif[0]+past_shift, order=3, mode='nearest')
 
     corr = ncc(warped_x, warped_y)
     return 1 - corr
 
 def err_fun_x(shif, x, y, past_shift):
     """Optimized error function for patch-based corrections."""
-    # # Warp once per call and reuse
-    # warped_x = warp_image_affine(x, [, 0])
-    # warped_y = warp_image_affine(y, [, 0])
 
     warped_x = warp_image_affine(x, [-shif[0]-past_shift, 0])
     warped_y = warp_image_affine(y, [shif[0]+past_shift, 0])
