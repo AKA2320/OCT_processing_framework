@@ -30,11 +30,11 @@ def _compute_flatten_transform(i, stat, sampled_data):
 def err_fun_flat(shif, x, y , past_shift):
     """Optimized error function with reduced memory allocation."""
     # Warp once and reuse for both x and y adjustments
-    warped_x = warp_image_affine(x, [-past_shift, 0])
-    warped_y = warp_image_affine(y, [past_shift, 0])
+    # warped_x = warp_image_affine(x, [, 0])
+    # warped_y = warp_image_affine(y, [, 0])
 
-    warped_x = warp_image_affine(warped_x, [-shif[0], 0])
-    warped_y = warp_image_affine(warped_y, [shif[0], 0])
+    warped_x = warp_image_affine(x, [-shif[0]-past_shift, 0])
+    warped_y = warp_image_affine(y, [shif[0]+past_shift, 0])
 
     corr = ncc(warped_x, warped_y)
     return float(1 - corr)
@@ -42,7 +42,7 @@ def err_fun_flat(shif, x, y , past_shift):
 def all_tran_flat(data, static_flat, disable_tqdm, scan_num):
     data_depth_y = data.shape[2]
     transforms_all = np.tile(np.eye(3),(data_depth_y,1,1))
-    sampled_data = data[::20] # dont need too much info surface registration
+    sampled_data = data[::20]
     static_data = sampled_data[:,:,static_flat]
     del data
     worker = partial(_compute_flatten_transform, stat=static_data, sampled_data=sampled_data) # static 2D, sampled_data 3D

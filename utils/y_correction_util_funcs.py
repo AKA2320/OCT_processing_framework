@@ -30,11 +30,11 @@ def _compute_y_transform(i, stat, sampled_data):
 def err_fun_y(shif, x, y, past_shift):
     """Optimized error function for Y-motion correction."""
     # Warp once per call and reuse
-    warped_x = warp_image_affine(x, [0, -past_shift])
-    warped_y = warp_image_affine(y, [0, past_shift])
+    # warped_x = warp_image_affine(x, [0, -past_shift])
+    # warped_y = warp_image_affine(y, [0, past_shift])
 
-    warped_x = warp_image_affine(warped_x, [0, -shif[0]])
-    warped_y = warp_image_affine(warped_y, [0, shif[0]])
+    warped_x = warp_image_affine(x, [0, -shif[0]-past_shift])
+    warped_y = warp_image_affine(y, [0, shif[0]+past_shift])
 
     corr = ncc(warped_x, warped_y)
     return float(1 - corr)
@@ -47,9 +47,8 @@ def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):
     del data
     worker = partial(_compute_y_transform, stat=static_data, sampled_data=sampled_data)
     with ThreadPoolExecutor(max_workers = None) as executor:
-        computed_transforms = list(executor.map(worker, range(data_depth_z-1)))
-    transforms_all[:data_depth_z-1] = computed_transforms
-    # Note: only first data_depth_z-1 transforms are computed, last remains eye as initialized
+        computed_transforms = list(executor.map(worker, range(data_depth_z)))
+    transforms_all = np.array(computed_transforms)
     del sampled_data, static_data
     gc.collect()
     return transforms_all
