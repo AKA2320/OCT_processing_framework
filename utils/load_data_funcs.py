@@ -14,7 +14,7 @@ def load_h5_data(dirname, scan_num):
     if dirname.endswith(('.h5','.hdf5')):
         with h5py.File(dirname, 'r') as hf:
             data = hf['volume'][:,20:-20,:] # remove 20 pixels from top and bottom to avoid bottom refleaction artifacts
-        return data
+        return data.astype(np.float32)
     else:
         if not dirname.endswith('/'):
             dirname = dirname + '/'
@@ -22,7 +22,7 @@ def load_h5_data(dirname, scan_num):
         pic_paths = [i for i in os.listdir(path) if i.endswith('.h5')]
         with h5py.File(path+pic_paths[0], 'r') as hf:
             original_data = hf['volume'][:,20:-20,:] # remove 20 pixels from top and bottom to avoid bottom refleaction artifacts
-        return original_data
+        return original_data.astype(np.float32)
 
 def load_data_dcm(dirname, scan_num):
     if not dirname.endswith('/'):
@@ -35,7 +35,7 @@ def load_data_dcm(dirname, scan_num):
         for i,j in enumerate(pic_paths):
             imgs_from_folder[i] = dcmread(os.path.join(dirname, j)).pixel_array
         imgs_from_folder = imgs_from_folder[:,20:-20,:] # remove 20 pixels from top and bottom to avoid bottom refleaction artifacts
-        return imgs_from_folder
+        return imgs_from_folder.astype(np.float32)
     else:
         current_scan_path = os.path.join(dirname, scan_num)
         pic_paths = [i for i in os.listdir(current_scan_path) if i.endswith('.dcm') or i.endswith('.DCM')]
@@ -45,7 +45,7 @@ def load_data_dcm(dirname, scan_num):
         for i,j in enumerate(pic_paths):
             imgs_from_folder[i] = dcmread(os.path.join(current_scan_path, j)).pixel_array
         imgs_from_folder = imgs_from_folder[:,20:-20,:] # remove 20 pixels from top and bottom to avoid bottom refleaction artifacts
-        return imgs_from_folder
+        return imgs_from_folder.astype(np.float32)
     
 
 def GUI_load_dcm(path_dir):

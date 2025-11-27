@@ -7,48 +7,53 @@ from utils.util_funcs import warp_image_affine
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import gc
+from rust_lib import run_y_correction_compute_rust
 
 ## Y-Motion Functions (Memory optimized and vectorized)
 
-def _compute_y_transform(i, stat, sampled_data):
-    """Worker function for parallel per-slice y-motion correction."""
-    try:
-        temp_img = sampled_data[i, :, :]
-        past_shift = 0
-        shift_threshold = 0.1
-        for _ in range(10):
-            move = minz(method='powell', fun=err_fun_y, x0=np.array([0.0]), bounds=[(-5,5)],
-                        args=(stat, temp_img, past_shift))['x']
-            if abs(move[0]) < shift_threshold:
-                break
-            past_shift += move[0]
-        temp_tform_manual = AffineTransform(translation=(0, past_shift*2))
-        return temp_tform_manual.params
-    except Exception as e:
-        return np.eye(3)
+# def _compute_y_transform(i, stat, sampled_data):
+#     """Worker function for parallel per-slice y-motion correction."""
+#     try:
+#         temp_img = sampled_data[i, :, :]
+#         past_shift = 0
+#         shift_threshold = 0.1
+#         for _ in range(10):
+#             move = minz(method='powell', fun=err_fun_y, x0=np.array([0.0]), bounds=[(-5,5)],
+#                         args=(stat, temp_img, past_shift))['x']
+#             if abs(move[0]) < shift_threshold:
+#                 break
+#             past_shift += move[0]
+#         temp_tform_manual = AffineTransform(translation=(0, past_shift*2))
+#         return temp_tform_manual.params
+#     except Exception as e:
+#         return np.eye(3)
 
-def err_fun_y(shif, x, y, past_shift):
-    """Optimized error function for Y-motion correction."""
-    # Warp once per call and reuse
-    # warped_x = warp_image_affine(x, [0, -past_shift])
-    # warped_y = warp_image_affine(y, [0, past_shift])
+# def err_fun_y(shif, x, y, past_shift):
+#     """Optimized error function for Y-motion correction."""
+#     # Warp once per call and reuse
+#     # warped_x = warp_image_affine(x, [0, -past_shift])
+#     # warped_y = warp_image_affine(y, [0, past_shift])
 
-    warped_x = warp_image_affine(x, [0, -shif[0]-past_shift])
-    warped_y = warp_image_affine(y, [0, shif[0]+past_shift])
+#     warped_x = warp_image_affine(x, [0, -shif[0]-past_shift])
+#     warped_y = warp_image_affine(y, [0, shif[0]+past_shift])
 
-    corr = ncc(warped_x, warped_y)
-    return float(1 - corr)
+#     corr = ncc(warped_x, warped_y)
+#     return float(1 - corr)
 
-def all_trans_y(data,static_y_motion,disable_tqdm,scan_num):
+def all_trans_y(data, static_y_motion,disable_tqdm,scan_num):
     data_depth_z = data.shape[0]
     transforms_all = np.tile(np.eye(3),(data_depth_z,1,1))
     sampled_data = data[:,:,::20] # dont need too much info surface registration
     static_data = sampled_data[static_y_motion,:,:]
     del data
-    worker = partial(_compute_y_transform, stat=static_data, sampled_data=sampled_data)
-    with ThreadPoolExecutor(max_workers = None) as executor:
-        computed_transforms = list(executor.map(worker, range(data_depth_z)))
-    transforms_all = np.array(computed_transforms)
+    # worker = partial(_compute_y_transform, stat=static_data, sampled_data=sampled_data)
+    # with ThreadPoolExecutor(max_workers = None) as executor:
+    #     computed_transforms = list(executor.map(worker, range(data_depth_z)))
+    # transforms_all = np.array(computed_transforms)
+    
+    computed_transforms = run_y_correction_compute_rust(static_data, sampled_data)
+    transforms_all[:,1,2] = np.array(computed_transforms)[:,1]
+
     del sampled_data, static_data
     gc.collect()
     return transforms_all
@@ -57,7 +62,7 @@ def y_motion_correcting(data, slice_coords, top_surf, partition_coord, disable_t
     """Memory optimized Y-motion correction that works in-place."""
     # Create view of sliced data to avoid unnecessary copy
     slice_indices = np.r_[tuple(np.r_[start:end] for start, end in slice_coords)]
-    temp_sliced_data = data[:, slice_indices, :]  # This is a view, not a copy
+    temp_sliced_data = data[:, slice_indices, :]
 
     # Find reference B-scan for motion correction
     static_y_motion = np.argmax(np.sum(temp_sliced_data, axis=(1, 2)))
