@@ -20,7 +20,7 @@ fn run_y_correction_compute_rust(py: Python, static_data: PyReadonlyArray2<f32>,
     let mut transforms: Vec<(f32,f32)> = py.detach(|| {
         moving_data.axis_iter(Axis(0)).into_par_iter().map(|(slice1)| {
             compute_y_motion(slice1.to_owned(), static_image.clone())
-        }).collect::<Vec<(f32,f32)>>()
+        }).collect()
     });
     Ok(transforms)
 }
@@ -34,7 +34,7 @@ fn run_flat_correction_compute_rust(py: Python, static_data: PyReadonlyArray2<f3
     let mut transforms: Vec<(f32,f32)> = py.detach(|| {
         moving_data.axis_iter(Axis(2)).into_par_iter().map(|(slice1)| {
             compute_flat_motion(slice1.to_owned(), static_image.clone())
-        }).collect::<Vec<(f32,f32)>>()
+        }).collect()
     });
     Ok(transforms)
 }
@@ -61,19 +61,28 @@ mod tests {
         array1.slice_mut(s![10, 20..75, 300..350]).fill(1.0);
 
         let shifts: Vec<i32> = (-10..10).collect();
-        let mut results:Vec<i32> = vec![];
+        // let results:Vec<i32> = vec![];
         // println!("{:?}", shifts);
-        for idx in 0..array1.shape()[0]{
-            let x = shifts[idx];
-            let mut temp_arr2 = array1.slice(s![idx, .., ..]).to_owned();
-            temp_arr2.slice_mut(s![(20+x)..(75+x), 300..350]).fill(1.0);
-            results.push(compute_y_motion(array1.slice(s![10, .., ..]).to_owned(), temp_arr2).1.round() as i32);
-        }
-        println!("{:?}", results);
+        // for idx in 0..array1.shape()[0]{
+        //     let x = shifts[idx];
+        //     let mut temp_arr2 = array1.slice(s![idx, .., ..]).to_owned();
+        //     temp_arr2.slice_mut(s![(20+x)..(75+x), 300..350]).fill(1.0);
+        //     results.push(compute_y_motion(array1.slice(s![10, .., ..]).to_owned(), temp_arr2).1.round() as i32);
+        // }
+        // println!("{:?}", results);
+        let results: Vec<i32> = (0..array1.shape()[0]).into_par_iter()
+        .map(|idx|{
+                let x = shifts[idx];
+                let mut temp_arr2 = array1.slice(s![idx, .., ..]).to_owned();
+                temp_arr2.slice_mut(s![(20+x)..(75+x), 300..350]).fill(1.0);
+                compute_y_motion(array1.slice(s![10, .., ..]).to_owned(), temp_arr2).1.round() as i32
+            }
+        ).collect();
+
         for i in 0..results.len(){
             assert_eq!(-results[i], shifts[i]);
         }
-        println!("Compute flatten function took: {:?} seconds", Instant::now().duration_since(start_time).as_secs());
+        println!("Compute Y motion function took: {:?} seconds", Instant::now().duration_since(start_time).as_secs());
     }
 
     #[test]
@@ -105,16 +114,16 @@ mod tests {
             results.push(compute_flat_motion(array1.slice(s![.., .., 25]).to_owned(), temp_arr2).0.round() as i32);
         }
 
-        let (h, w1) = array1.slice(s![.., .., 25]).dim();
-        let buffer1: ImageBuffer<Luma<u8>, Vec<u8>> = ImageBuffer::from_raw(
-        w1 as u32,
-        h as u32,
-        array1.slice(s![.., .., 25]).mapv(|v| (v * 255.0).clamp(0.0, 255.0) as u8).as_slice().unwrap().to_vec(),
-        )
-        .unwrap();
-        buffer1.save("test_sidearray_flatten1.png").unwrap();
+        // let (h, w1) = array1.slice(s![.., .., 25]).dim();
+        // let buffer1: ImageBuffer<Luma<u8>, Vec<u8>> = ImageBuffer::from_raw(
+        // w1 as u32,
+        // h as u32,
+        // array1.slice(s![.., .., 25]).mapv(|v| (v * 255.0).clamp(0.0, 255.0) as u8).as_slice().unwrap().to_vec(),
+        // )
+        // .unwrap();
+        // buffer1.save("test_sidearray_flatten1.png").unwrap();
 
-        println!("{:?}", results);
+        // println!("{:?}", results);
         for i in 0..results.len(){
             assert_eq!(-results[i], shifts[i]);
         }
