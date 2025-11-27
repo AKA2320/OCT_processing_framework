@@ -1,8 +1,7 @@
-// use argmin::solver::neldermead::{NelderMead};
 use argmin::solver::brent::{BrentOpt};
 use argmin::core::{CostFunction, Error, Executor};
-use kornia_rs::image::{Image, ImageSize};
-use ndarray::{ArrayViewD, Array2, Axis, ArrayView2, array};
+use kornia_rs::image::{Image};
+use ndarray::{Array2, Axis};
 use crate::utility::{ncc, ndarray_to_kornia_image, warp_image_kornia};
 
 pub fn err_func_y_motion(shift: f32, 
@@ -91,7 +90,7 @@ pub fn compute_y_motion(arr1: Array2<f32>, arr2: Array2<f32>) -> (f32, f32) {
 #[cfg(test)]
 mod tests {
     use ndarray::{Array,s};
-    use image::{ImageBuffer, Luma};
+    // use image::{ImageBuffer, Luma};
     use super::*; 
 
     #[test]

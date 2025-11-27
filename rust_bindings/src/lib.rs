@@ -1,12 +1,11 @@
-#![allow(unused, unused_imports, dead_code)]
+// #![allow(unused, unused_imports, dead_code)]
 use pyo3::prelude::*;
-use numpy::{PyReadonlyArrayDyn, PyReadonlyArray2, PyReadonlyArray3};
-use ndarray::{Ix2, Array2, Array3, Ix3, Axis};
+use numpy::{PyReadonlyArray2, PyReadonlyArray3};
+use ndarray::{Array2, Array3, Axis};
 use ndarray::parallel::prelude::*;
 mod utility;
 mod y_minimization;
 mod flat_minimization;
-use utility::*;
 use y_minimization::*;
 use flat_minimization::*;
 
@@ -17,8 +16,8 @@ fn run_y_correction_compute_rust(py: Python, static_data: PyReadonlyArray2<f32>,
     let static_image: Array2<f32> = static_data.as_array().to_owned(); // (m * n)
     let moving_data: Array3<f32>  = mov_data.as_array().to_owned(); // (l * m * n)
 
-    let mut transforms: Vec<(f32,f32)> = py.detach(|| {
-        moving_data.axis_iter(Axis(0)).into_par_iter().map(|(slice1)| {
+    let transforms: Vec<(f32,f32)> = py.detach(|| {
+        moving_data.axis_iter(Axis(0)).into_par_iter().map(|slice1| {
             compute_y_motion(slice1.to_owned(), static_image.clone())
         }).collect()
     });
@@ -31,8 +30,8 @@ fn run_flat_correction_compute_rust(py: Python, static_data: PyReadonlyArray2<f3
     let static_image: Array2<f32> = static_data.as_array().to_owned(); // (m * n)
     let moving_data: Array3<f32>  = mov_data.as_array().to_owned(); // (l * m * n)
 
-    let mut transforms: Vec<(f32,f32)> = py.detach(|| {
-        moving_data.axis_iter(Axis(2)).into_par_iter().map(|(slice1)| {
+    let transforms: Vec<(f32,f32)> = py.detach(|| {
+        moving_data.axis_iter(Axis(2)).into_par_iter().map(|slice1| {
             compute_flat_motion(slice1.to_owned(), static_image.clone())
         }).collect()
     });
@@ -50,9 +49,9 @@ fn rust_lib(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ndarray::{Array, Axis, Array3, s, ArrayView2, Array2};
-    use image::{ImageBuffer, Luma};
-    use std::time::{Instant, Duration};
+    use ndarray::{Array, Array3, s};
+    // use image::{ImageBuffer, Luma};
+    use std::time::{Instant};
 
     #[test]
     fn run_y_correct(){

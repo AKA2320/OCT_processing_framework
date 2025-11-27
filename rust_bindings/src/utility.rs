@@ -1,5 +1,5 @@
 use kornia_rs::image::{Image, ImageSize};
-use ndarray::{ArrayViewD, Array2, Axis, ArrayView2};
+use ndarray::{Array2, ArrayView2};
 use kornia_rs::warp::warp_affine;
 use kornia_rs::interpolation::InterpolationMode;
 
