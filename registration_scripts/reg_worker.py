@@ -257,8 +257,8 @@ class RegistrationWorker:
 
     def _save_data(self, data, suffix=''):
         """Save processed data to HDF5 file"""
-        if data.dtype != np.float64:
-            data = data.astype(np.float64)
+        if data.dtype != np.float32:
+            data = data.astype(np.float32)
         folder_save = self.DATA_SAVE_DIR
         if not folder_save.endswith('/'):
             folder_save = folder_save + '/'
