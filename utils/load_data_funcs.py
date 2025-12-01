@@ -83,12 +83,15 @@ def load_napari_viewer(data):
             config = yaml.safe_load(f)
     try:
         from ultralytics import YOLO
-        MODEL_FEATURE_DETECT_PATH = config['PATHS']['MODEL_FEATURE_DETECT_PATH']
+        MODEL_FEATURE_DETECT_PATH = resource_path(config['PATHS']['MODEL_FEATURE_DETECT_PATH'])
         MODEL_FEATURE_DETECT = YOLO(MODEL_FEATURE_DETECT_PATH)
         logging.info("YOLO Model Loaded Successfully.")
     except Exception as e:
         logging.error(f"Error loading YOLO model: {e}", exc_info=True)
-        return None
+        view_data = (min_max(data) * 255).astype(np.uint8)
+        viewer = napari.Viewer()
+        viewer.add_image(data=data, name='whole data')
+        return viewer
 
     # Detection part - use view to avoid copying the slice
     data_view = data[:, :, :]  # Create a view of the full dataset
