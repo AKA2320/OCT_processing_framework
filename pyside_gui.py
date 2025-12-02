@@ -26,7 +26,7 @@ from registration_scripts.gui_reg_process_wrapper import run_registration_proces
 
 
 # =============================================================================
-# Worker Threads (QThread is now a manager for the process)
+# Worker Threads
 # =============================================================================
 class LoadThread(QThread):
     """Worker thread to load data without blocking the GUI."""
@@ -206,7 +206,7 @@ class RegistrationTab(QWidget):
         self.selected_save_path = "output/"
         self.registration_thread = None
         layout = QVBoxLayout(self)
-        reg_label_text = f"Select {'Directory for Batch' if self.mode == 'batch' else 'Data for'} Registration:"
+        reg_label_text = f"Select {'Directory for Batch' if self.mode == 'batch' else 'Data for'} Processing:"
         browse_tooltip = f"Select a {'directory containing .h5 files' if self.mode == 'batch' else '.h5, .hdf5, or .dcm file'}."
         layout.addWidget(QLabel(reg_label_text))
         self.browse_btn = QPushButton("Browse...")
@@ -239,7 +239,7 @@ class RegistrationTab(QWidget):
         self.save_detections_checkbox = QCheckBox("Save Feature Detections")
         self.save_detections_checkbox.setChecked(True)
         layout.addWidget(self.save_detections_checkbox)
-        self.register_btn = QPushButton("Register Data")
+        self.register_btn = QPushButton("Process Data")
         self.register_btn.setEnabled(False)
         self.register_btn.setStyleSheet("font-weight: bold; padding: 5px;")
         layout.addWidget(self.register_btn)
@@ -360,10 +360,10 @@ class PathLoaderApp(QWidget):
         self.tab_widget.addTab(self.load_tab, "Load & Visualize")
         self.single_register_tab = RegistrationTab(mode='single')
         self.single_register_tab.update_status.connect(self.update_status_bar)
-        self.tab_widget.addTab(self.single_register_tab, "Register Data")
+        self.tab_widget.addTab(self.single_register_tab, "Process Data")
         self.batch_register_tab = RegistrationTab(mode='batch')
         self.batch_register_tab.update_status.connect(self.update_status_bar)
-        self.tab_widget.addTab(self.batch_register_tab, "Batch Register Data")
+        self.tab_widget.addTab(self.batch_register_tab, "Batch Process Data")
         self.status_bar = QLabel("Welcome! Please select a file or directory to begin.")
         self.status_bar.setStyleSheet("QLabel { background-color: white; border: 1px solid #ccc; padding: 5px; font-weight: bold; color:black; }")
         overall_layout.addWidget(self.status_bar)

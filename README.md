@@ -6,6 +6,13 @@ This project provides a comprehensive framework for performing processing of Opt
 
 Standalone applications for macOS and Windows are also available for download from our GitHub releases, providing a convenient way to use the framework without installing Python or other dependencies.
 
+### Preview
+
+![Application Interface](gui_images/GUI%20Tab.png)
+
+**Before Registration** | **After Registration**  
+<img src="gui_images/OCT_unreg.png" width="45%"> <img src="gui_images/OCT_reg.png" width="45%">
+
 ## Key Features
 
 *   **Feature Detection:** Employs state-of-the-art YOLO models for detecting anatomical features and structures in OCT images
