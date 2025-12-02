@@ -8,16 +8,17 @@ Standalone applications for macOS and Windows are also available for download fr
 
 ### Preview
 
-![Application Interface](gui_images/GUI%20Tab.png)
+<img src="gui_images/GUI%20Tab.png" width="70%" alt="Application Interface">
 
-**Before Registration** | **After Registration**  
-<img src="gui_images/OCT_unreg.png" width="45%"> <img src="gui_images/OCT_reg.png" width="45%">
+| **Before Registration** | **After Registration** |
+|------------------------|------------------------|
+| <img src="gui_images/OCT_unreg.png" width="100%"> | <img src="gui_images/OCT_reg.png" width="100%"> |
 
 ## Key Features
 
-*   **Feature Detection:** Employs state-of-the-art YOLO models for detecting anatomical features and structures in OCT images
-*   **Multi-dimensional Motion Correction:** Corrects for motion artifacts in X, Y, and Z (flattening) directions
-*   **Deep Learning Integration:** Utilizes Swin Transformer-based "TransMorph" models for advanced registration tasks
+*   **Feature Detection:** Employs YOLO model for detecting features, structures and remove anomalies in OCT images
+*   **Multi-dimensional Motion Correction:** Corrects motion in X, Y, and Z (flattening) directions
+*   **Deep Learning Integration:** Utilizes Swin Transformer-based "TransMorph" model for registration
 *   **Flexible Configuration:** GUI allows real-time configuration of processing parameters; command-line interface uses YAML configuration files
 *   **Dual Interface:** Provides both GUI (PySide6) and command-line interfaces for different use cases
 *   **Multi-format Support:** Supports `.h5` and `.dcm` OCT data formats
