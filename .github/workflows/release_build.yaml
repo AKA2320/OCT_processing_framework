@@ -1,10 +1,12 @@
 # .github/workflows/release_build.yml
-name: Unified Release Build
+name: Release Build
 
 on:
   push:
     tags:
       - 'v*.*.*' # Trigger on pushes to tags like v1.0.0
+  
+  workflow_dispatch:
 
 jobs:
   build_macos:
@@ -25,8 +27,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install .
         pip install pyinstaller
-        pip install napari pyside6 torch ultralytics h5py natsort torchvision tqdm timm ml_collections pydicom scikit-image scipy bokeh matplotlib
+
+    - name: Run Maturin for Rust Bindings
+      run: |
+        maturin build --release -m rust_bindings/Cargo.toml
+        pip install rust_bindings/target/wheels/*.whl
 
     - name: Build with PyInstaller
       run: pyinstaller spec_files/OCT_mac_app.spec
@@ -62,9 +69,14 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install .
         pip install pyinstaller
-        pip install napari pyside6 torch ultralytics h5py natsort torchvision tqdm timm ml_collections pydicom scikit-image scipy bokeh matplotlib
-
+    
+    - name: Run Maturin for Rust Bindings
+      run: |
+        maturin build --release -m rust_bindings/Cargo.toml
+        pip install rust_bindings/target/wheels/*.whl  
+      
     - name: Build with PyInstaller
       run: pyinstaller spec_files/OCT_windows_app.spec
 

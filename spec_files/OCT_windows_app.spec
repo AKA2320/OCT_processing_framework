@@ -2,6 +2,7 @@
 
 import sys
 import os
+import glob
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
 block_cipher = None
@@ -13,6 +14,8 @@ site_path = [i for i in sys.path if "site-packages" in i][0]
 napari_path = os.path.join(site_path, "napari")
 vispy_path = os.path.join(site_path, "vispy")
 
+rust_binary_source_path = glob.glob(os.path.join(site_path, 'rust_lib', 'rust_lib*'))[0]
+
 config_py_path = '../config_transmorph.py'
 funcs_transmorph_py_path = '../funcs_transmorph.py'
 datapaths_yaml_path = '../datapaths.yaml'
@@ -23,7 +26,7 @@ icon_path = 'Tankam-Lab-Logo-2.png'
 a = Analysis(
     [pyside_gui_py_path],
     pathex=[],
-    binaries=[],
+    binaries=[(rust_binary_source_path, '.')],
     datas=[
         (models_yolo_path, 'models/'),
         (config_py_path, '.'),
