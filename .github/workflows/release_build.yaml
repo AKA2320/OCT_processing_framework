@@ -10,17 +10,17 @@ on:
 
 jobs:
   build_macos:
-    runs-on: macos-latest # Use the latest macos runner
+    runs-on: macos-latest 
     permissions:
       contents: write
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 # Action to checkout your repository code
+      uses: actions/checkout@v4 
       with:
         lfs: true # Ensure LFS files are pulled if using Git LFS
 
     - name: Set up Python
-      uses: actions/setup-python@v5 # Action to set up Python
+      uses: actions/setup-python@v5 
       with:
         python-version: '3.12.10' # Specify the Python version
 
@@ -36,7 +36,7 @@ jobs:
     - name: Run Maturin for Rust Bindings
       run: |
         maturin build --release -m rust_bindings/Cargo.toml
-        WHEEL_FILE=$(python -c "import glob, os; print(os.path.join(glob.glob('rust_bindings/target/wheels/*.whl')[0]))")
+        WHEEL_FILE=$(python -c "import glob, os; print(os.path.abspath(glob.glob('rust_bindings/target/wheels/*.whl')[0]))")
         pip install "${WHEEL_FILE}" --force-reinstall
 
     - name: Build with PyInstaller
@@ -50,25 +50,25 @@ jobs:
       shell: pwsh
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4 # Action to upload the built executable as an artifact
+      uses: actions/upload-artifact@v4
       with:
         name: OCT_mac_app # Name of the artifact
         path: dist/OCT_mac_app.zip # Path to the zipped executable
 
   build_windows:
-    runs-on: windows-latest # Use the latest Windows runner
+    runs-on: windows-latest 
     permissions:
       contents: write
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 # Action to checkout your repository code
+      uses: actions/checkout@v4 
       with:
-        lfs: true # Ensure LFS files are pulled if using Git LFS
+        lfs: true 
 
     - name: Set up Python
-      uses: actions/setup-python@v5 # Action to set up Python
+      uses: actions/setup-python@v5 
       with:
-        python-version: '3.12.10' # Specify the Python version
+        python-version: '3.12.10'
 
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
@@ -82,8 +82,8 @@ jobs:
     - name: Run Maturin for Rust Bindings
       run: |
         maturin build --release -m rust_bindings/Cargo.toml
-        WHEEL_FILE=$(python -c "import glob, os; print(os.path.join(glob.glob('rust_bindings/target/wheels/*.whl')[0]))")
-        pip install "${WHEEL_FILE}" --force-reinstall
+        $wheel_file = python -c "import glob, os; print(os.path.abspath(glob.glob('rust_bindings/target/wheels/*.whl')[0]))"
+        pip install $wheel_file --force-reinstall
       
     - name: Build with PyInstaller
       run: pyinstaller spec_files/OCT_windows_app.spec
@@ -95,7 +95,7 @@ jobs:
       shell: pwsh
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4 # Action to upload the built executable as an artifact
+      uses: actions/upload-artifact@v4 
       with:
         name: OCT_windows_app # Name of the artifact
         path: dist/OCT_windows_app.zip
