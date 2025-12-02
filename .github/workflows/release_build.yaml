@@ -36,7 +36,8 @@ jobs:
     - name: Run Maturin for Rust Bindings
       run: |
         maturin build --release -m rust_bindings/Cargo.toml
-        pip install rust_bindings/target/wheels/*.whl
+        WHEEL_FILE=$(python -c "import glob, os; print(os.path.abspath(glob.glob('rust_bindings/target/wheels/*.whl')[0]))")
+        pip install "${WHEEL_FILE}" --force-reinstall
 
     - name: Build with PyInstaller
       run: pyinstaller spec_files/OCT_mac_app.spec
@@ -81,7 +82,8 @@ jobs:
     - name: Run Maturin for Rust Bindings
       run: |
         maturin build --release -m rust_bindings/Cargo.toml
-        pip install rust_bindings/target/wheels/*.whl  
+        WHEEL_FILE=$(python -c "import glob, os; print(os.path.abspath(glob.glob('rust_bindings/target/wheels/*.whl')[0]))")
+        pip install "${WHEEL_FILE}" --force-reinstall
       
     - name: Build with PyInstaller
       run: pyinstaller spec_files/OCT_windows_app.spec
