@@ -115,7 +115,7 @@ class RegistrationMaster:
                     #     self.output_queue.put("Model X not present in models/ \n Downloading the model.\n")     
                     download_model(model_x_translation_url,self.MODEL_X_TRANSLATION_PATH)
                     logging.info("Model Downloaded Succesfully.")
-                MODEL_X_TRANSLATION = torch.load(self.MODEL_X_TRANSLATION_PATH, map_location=self.DEVICE, weights_only=False)
+                MODEL_X_TRANSLATION = torch.jit.load(self.MODEL_X_TRANSLATION_PATH, map_location=self.DEVICE)
                 MODEL_X_TRANSLATION.eval()
                 logging.info("Model X loaded successfully.")
                 # if self.is_gui_flag:
