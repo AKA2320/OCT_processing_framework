@@ -1,14 +1,9 @@
 import sys
 import multiprocessing
 multiprocessing.freeze_support()
-# import matplotlib.pylab as plt
-# import numpy as np
 import os
-# from skimage.transform import warp, AffineTransform
 from natsort import natsorted
 from tqdm import tqdm
-# import h5py
-# import shutil
 from ultralytics import YOLO
 from utils.util_funcs import resource_path, download_model
 from registration_scripts.reg_worker import RegistrationWorker
