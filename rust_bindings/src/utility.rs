@@ -26,7 +26,6 @@ pub fn warp_image_kornia(img: &Image<f32, 1>, shifts: (f32,f32)) -> Image<f32, 1
 }
 
 pub fn ncc(a1: ArrayView2<f32>, a2: ArrayView2<f32>) -> Result<f32, NccError>{
-
     if a1.dim()!=a2.dim(){
         return Err(NccError::DimMisMatch)
     }
@@ -49,7 +48,7 @@ pub fn ncc(a1: ArrayView2<f32>, a2: ArrayView2<f32>) -> Result<f32, NccError>{
     if denominator != 0.0 {
         Ok(numerator / denominator)
     } else {
-        if (sigma1 as f32 == 0.0_f32) & (sigma2 as f32 == 0.0_f32) {
+        if (sigma1.abs() < 1e-6) & (sigma2.abs() < 1e-6) {
             return Ok(1.0)
         }
         else{

@@ -7,8 +7,8 @@ use crate::utility::{ncc, ndarray_to_kornia_image, warp_image_kornia};
 pub fn err_func_y_motion(shift: f32, 
     image_x: &Image<f32, 1>, 
     image_y: &Image<f32, 1>, 
-    past_shift: f32) -> f32 {
-
+    past_shift: f32) -> f32 
+    {
     let warped_x = warp_image_kornia(&image_x, (0.0, -shift-past_shift,));
     let warped_y = warp_image_kornia(&image_y, (0.0, shift+past_shift));
 
@@ -36,15 +36,13 @@ impl<'a> CostFunction for YMotionErrorCost<'a> {
     }
 }
 
-pub fn compute_y_motion(arr1: Array2<f32>, arr2: Array2<f32>) -> (f32, f32) {
-    // Extract temp_img as Image<f64, 1> (adapt based on your actual types)
-    let static_image_arr1 = ndarray_to_kornia_image(arr1);
+pub fn compute_y_motion(static_image_arr1: &Image<f32, 1>, arr2: Array2<f32>) -> (f32, f32) {
+    // let static_image_arr1 = ndarray_to_kornia_image(arr1);
     let moving_image_arr2 = ndarray_to_kornia_image(arr2);
     let mut past_shift: f32 = 0.0;
     let shift_threshold: f32 = 0.05;
 
     for _ in 0..10 {
-        // println!("Running loop");
         let cost: YMotionErrorCost<'_> = YMotionErrorCost {
             image_x: &static_image_arr1,
             image_y: &moving_image_arr2,
@@ -52,7 +50,6 @@ pub fn compute_y_motion(arr1: Array2<f32>, arr2: Array2<f32>) -> (f32, f32) {
         };
 
         // let p0 = vec![0.0_f32];
-        // let solver= NelderMead::new(p0);
         let solver = BrentOpt::new(-10.0_f32,10.0_f32);
 
         let res = Executor::new(cost, solver)
@@ -66,11 +63,9 @@ pub fn compute_y_motion(arr1: Array2<f32>, arr2: Array2<f32>) -> (f32, f32) {
                 if move_val.abs() < shift_threshold {
                     break;
                 }
-                // println!("past: {}, move: {}",past_shift, move_val);
                 past_shift += move_val;
             }
             Err(_) => {
-                println!("Minimization failed");
                 return (0.0, 0.0); // Identity matrix on error
             }
         }
@@ -97,6 +92,7 @@ mod tests {
     fn shift_transfrom(){
         let mut array1: Array2<f32> = Array::<f32,_>::zeros((50,1000));
         array1.slice_mut(s![15..20, 500..550]).fill(1.0);
+        let array1_image = ndarray_to_kornia_image(array1);
 
         let mut array2: Array2<f32> = Array::<f32,_>::zeros((50,1000));
         array2.slice_mut(s![32..37, 500..550]).fill(1.0);
@@ -110,7 +106,7 @@ mod tests {
         // .unwrap();
         // buffer1.save("test_array_big1.png").unwrap();
 
-        let res_transfrom: (f32,f32) = compute_y_motion(array1, array2);
+        let res_transfrom: (f32,f32) = compute_y_motion(&array1_image, array2);
         println!("{:?}", res_transfrom);
         assert!(res_transfrom.1.round() as i32 == -17);
     }
@@ -119,11 +115,12 @@ mod tests {
     fn no_shift_transfrom(){
         let mut array1: Array2<f32> = Array::<f32,_>::zeros((50,1000));
         array1.slice_mut(s![20..25, 500..550]).fill(1.0);
+        let array1_image = ndarray_to_kornia_image(array1);
 
         let mut array2: Array2<f32> = Array::<f32,_>::zeros((50,1000));
         array2.slice_mut(s![20..25, 500..550]).fill(1.0);
 
-        let res_transfrom: (f32,f32) = compute_y_motion(array1, array2);
+        let res_transfrom: (f32,f32) = compute_y_motion(&array1_image, array2);
         // println!("{:?}", res_transfrom);
         assert!(res_transfrom.1.round() as i32 == 0);
     }
