@@ -18,10 +18,7 @@ from PySide6.QtWidgets import (
     QTabWidget,
 )
 from PySide6.QtCore import QThread, Signal
-# import napari
 from utils.load_data_funcs import GUI_load_h5, GUI_load_dcm, load_napari_viewer
-# from utils.util_funcs import min_max
-# import numpy as np
 from registration_scripts.gui_reg_process_wrapper import run_registration_process
 
 

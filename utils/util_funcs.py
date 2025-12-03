@@ -1,16 +1,8 @@
-# from pydicom import dcmread
-# import matplotlib.pylab as plt
+
 import numpy as np
 import os
-# from skimage.transform import warp, AffineTransform
 import cv2
 import requests
-# import h5py
-# from natsort import natsorted
-# from scipy.fftpack import fft2, fftshift, ifft2, fft, ifft
-# from skimage.filters import threshold_otsu
-# from skimage.metrics import normalized_mutual_information as nmi
-# from scipy.signal import correlate2d
 import sys
 
 def ncc(array1, array2):
