@@ -1,3 +1,4 @@
+#[allow(unused, dead_code, unused_variables)]
 use pyo3::prelude::*;
 use numpy::{PyReadonlyArray2, PyReadonlyArray3};
 use ndarray::{Array3, Axis};
@@ -10,6 +11,11 @@ use utility::*;
 use y_minimization::*;
 use flat_minimization::*;
 
+use tch::{CModule, Device, Tensor, IValue, Kind};
+
+// fn load_torch()-> Result<(),()>{
+
+// }
 
 #[pyfunction]
 fn run_y_correction_compute_rust(py: Python, static_data: PyReadonlyArray2<f32>, mov_data: PyReadonlyArray3<f32>)  
@@ -53,6 +59,46 @@ mod tests {
     use ndarray::{Array, Array3, s};
     // use image::{ImageBuffer, Luma};
     use std::time::{Instant};
+
+    #[test]
+    fn torch_test(){
+        let device = Device::Cpu;
+        let mut model = CModule::load_on_device("../models/transmorph_lateral_X_translation.pt", device)
+                    .expect("Failed to load model");
+        model.set_eval();
+        let mut array1: Array3<f32> = Array3::<f32>::zeros((1, 64, 416));
+        array1.slice_mut(s![.., .., 300..350]).fill(1.0);
+
+        let mut array2: Array3<f32> = Array3::<f32>::zeros((1, 64, 416));
+        array2.slice_mut(s![.., .., 304..354]).fill(1.0);
+
+        let concatenated = ndarray::concatenate(Axis(0), &[array1.view(), array2.view()]).unwrap();
+        let shape: Vec<i64> = concatenated.shape().iter().map(|&dim| dim as i64).collect();
+        let data: Vec<f32> = concatenated.iter().cloned().collect();
+    
+        // Create the tch::Tensor
+        let input = Tensor::from_slice(&data).reshape(&shape).to_kind(Kind::Double).unsqueeze(0).to_device(device);
+        println!("input is : {:?}", input);
+
+        // let input = Tensor::randn(&[1, 2, 64, 416], (Kind::Double, device));
+        let ivalues: Vec<IValue> = vec![IValue::Tensor(input)];
+        let result: IValue = model.forward_is(&ivalues).expect("Forward failed");
+        // let mut output: Tensor;
+        println!("result is : {:?}", result);
+
+        let output: Tensor = if let IValue::Tuple(mut outputs) = result {
+            let t1: Tensor = if let IValue::Tensor(temp_t1) = outputs.pop().unwrap() {
+                temp_t1
+            }else{
+                panic!("First else");
+            };
+            t1
+        }else{
+            panic!("Second else");
+        };
+        let val: f32 = output.double_value(&[0,0]) as f32;
+        println!("{}",val);
+    }
 
     #[test]
     fn run_y_correct(){
