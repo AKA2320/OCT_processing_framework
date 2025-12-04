@@ -49,12 +49,12 @@ def crop_data(data,surface_coords,cells_coords,max_crop_shape):
     uncroped_data = data
     merged_coords = []
     if surface_coords is not None:
-        surface_coords[:,0],surface_coords[:,1] = surface_coords[:,0]-30, surface_coords[:,1]+30
+        surface_coords[:,0],surface_coords[:,1] = surface_coords[:,0]-30, surface_coords[:,1]+30 # 30 is for padding, makes it atleast 60 pixels for transmorph to work
         surface_coords = np.where(surface_coords<0,0,surface_coords)
         surface_coords = np.where(surface_coords>max_crop_shape,max_crop_shape-1,surface_coords)
         merged_coords.extend([*surface_coords])
     if cells_coords is not None:
-        cells_coords[:,0],cells_coords[:,1] = cells_coords[:,0]-30, cells_coords[:,1]+30
+        cells_coords[:,0],cells_coords[:,1] = cells_coords[:,0]-30, cells_coords[:,1]+30 # 30 is for padding, makes it atleast 60 pixels for transmorph to work
         cells_coords = np.where(cells_coords<0,0,cells_coords)
         cells_coords = np.where(cells_coords>max_crop_shape,max_crop_shape-1,cells_coords)
         merged_coords.extend([*cells_coords])
