@@ -16,8 +16,6 @@ vispy_path = os.path.join(site_path, "vispy")
 
 rust_binary_source_path = glob.glob(os.path.join(site_path, 'rust_lib', 'rust_lib*'))[0]
 
-config_py_path = '../config_transmorph.py'
-funcs_transmorph_py_path = '../funcs_transmorph.py'
 datapaths_yaml_path = '../datapaths.yaml'
 models_yolo_path = '../models/feature_detect_yolov12best.pt'
 pyside_gui_py_path = '../pyside_gui.py'
@@ -29,8 +27,6 @@ a = Analysis(
     binaries=[(rust_binary_source_path, '.')],
     datas=[
         (models_yolo_path, 'models/'),
-        (config_py_path, '.'),
-        (funcs_transmorph_py_path, '.'),
         (datapaths_yaml_path, '.'),
         (napari_path, 'napari'),
         (vispy_path, 'vispy'),
